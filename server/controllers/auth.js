@@ -65,5 +65,36 @@ export const registerUser = async (req, res) => {
   }
 };
 
-// We will add loginUser function here later
-// export const loginUser = async (req, res) => { ... };
+// @desc    Authenticate user & get token
+// @route   POST /api/auth/login
+// @access  Public
+export const loginUser = async (req, res) => {
+  const { email, password } = req.body;
+
+  // Basic validation
+  if (!email || !password) {
+    return res.status(400).json({ message: 'Please provide email and password' });
+  }
+
+  try {
+    // Check for user by email
+    const user = await User.findOne({ email });
+
+    // Check if user exists and if password matches
+    if (user && (await bcrypt.compare(password, user.passwordHash))) {
+      // User authenticated
+      res.json({
+        _id: user._id,
+        email: user.email,
+        createdAt: user.createdAt,
+        token: generateToken(user._id),
+      });
+    } else {
+      // Authentication failed
+      res.status(401).json({ message: 'Invalid email or password' }); // Use 401 Unauthorized
+    }
+  } catch (error) {
+    console.error('Error during user login:', error);
+    res.status(500).json({ message: 'Server error during login' });
+  }
+};
