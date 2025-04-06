@@ -5,7 +5,8 @@ import {
     getNoteByIdApi,
     createNoteApi,
     updateNoteApi,
-    deleteNoteApi
+    deleteNoteApi,
+    searchNotesApi
 } from '../services/api';
 
 const useNoteStore = create((set, get) => ({
@@ -16,6 +17,9 @@ const useNoteStore = create((set, get) => ({
     error: null,
     listError: null,     // Differentiate list errors from selected note errors
     selectedError: null,
+    searchResults: [],
+    isSearching: false,
+    searchError: null,
 
     // Action to fetch notes list
     fetchNotes: async (filters = {}) => {
@@ -115,6 +119,23 @@ const useNoteStore = create((set, get) => ({
         }
     },
 
+    searchNotes: async (query) => {
+        set({ isSearching: true, searchError: null });
+        try {
+            const response = await searchNotesApi(query);
+            set({ searchResults: response.data, isSearching: false });
+        } catch (error) {
+            console.error('Search notes error:', error);
+            set({
+                searchError: error.message || 'Failed to search notes',
+                isSearching: false
+            });
+        }
+    },
+
+    clearSearchResults: () => {
+        set({ searchResults: [], searchError: null });
+    }
 }));
 
 export default useNoteStore;

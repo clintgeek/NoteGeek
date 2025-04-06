@@ -26,90 +26,112 @@ const useAuthStore = create(
         (set, get) => ({
             token: getToken() || null,       // Initialize token from localStorage
             user: null,        // User info (decoded from token or fetched)
-            isAuthenticated: !!getToken(), // Initial auth state based on token presence
+            isAuthenticated: false,
             isLoading: false,
             error: null,
 
             // Login action
-            login: async (email, password) => {
+            login: async (username, password) => {
                 set({ isLoading: true, error: null });
                 try {
-                    const response = await login({ email, password });
-                    const { token, ...userData } = response.data; // Separate token from user data
-                    setToken(token); // Store token in localStorage via api service function
+                    const response = await login({ username, password });
+                    const { token } = response.data;
+                    setToken(token);
+
+                    // Decode user data from token
+                    const decoded = decodeToken(token);
+                    if (!decoded) {
+                        throw new Error('Invalid token received');
+                    }
+
                     set({
-                        token: token,
-                        user: userData,
+                        token,
+                        user: {
+                            id: decoded.id,
+                            username: decoded.username
+                        },
                         isAuthenticated: true,
                         isLoading: false
                     });
-                    return true; // Indicate success
+                    return true;
                 } catch (error) {
                     const errorMessage = error.response?.data?.message || 'Login failed';
                     set({ error: errorMessage, isLoading: false, isAuthenticated: false });
                     console.error('Login error:', errorMessage);
-                    removeToken(); // Ensure token is removed on login failure
-                    return false; // Indicate failure
+                    removeToken();
+                    return false;
                 }
             },
 
-            // Register action (similar to login)
-            register: async (email, password) => {
+            // Register action
+            register: async (username, password) => {
                 set({ isLoading: true, error: null });
-                 try {
-                    const response = await register({ email, password });
-                    const { token, ...userData } = response.data;
+                try {
+                    const response = await register({ username, password });
+                    const { token } = response.data;
                     setToken(token);
+
+                    // Decode user data from token
+                    const decoded = decodeToken(token);
+                    if (!decoded) {
+                        throw new Error('Invalid token received');
+                    }
+
                     set({
-                        token: token,
-                        user: userData,
+                        token,
+                        user: {
+                            id: decoded.id,
+                            username: decoded.username
+                        },
                         isAuthenticated: true,
                         isLoading: false
                     });
-                    return true; // Indicate success
+                    return true;
                 } catch (error) {
                     const errorMessage = error.response?.data?.message || 'Registration failed';
                     set({ error: errorMessage, isLoading: false, isAuthenticated: false });
                     console.error('Registration error:', errorMessage);
                     removeToken();
-                    return false; // Indicate failure
+                    return false;
                 }
             },
 
             // Logout action
             logout: () => {
-                removeToken(); // Remove token from localStorage
+                removeToken();
                 set({ token: null, user: null, isAuthenticated: false, error: null });
-                // No need to redirect here, component using the hook can handle it
             },
 
-            // Action to potentially rehydrate user info if token exists but user state is lost (e.g. refresh)
-            // This is basic - might need more robust check/API call later
+            // Hydrate user from token
             hydrateUser: () => {
-                const token = get().token;
-                if (token && !get().user) {
+                const token = getToken();
+                if (token) {
                     const decoded = decodeToken(token);
-                    if (decoded && decoded.id) { // Check if token has user ID
-                       // In a real app, you might want to fetch full user details here using decoded.id
-                       // For now, just setting basic info might suffice if token payload is enough
-                       // Or we can just rely on the initial token check
-                       console.log('Attempting basic user hydration from token');
-                       // set({ user: { _id: decoded.id /*, ... maybe email? */ } });
-                       // For now, maybe just ensure isAuthenticated is true if token is valid
-                       set({ isAuthenticated: true });
+                    if (decoded && decoded.id) {
+                        set({
+                            token,
+                            user: {
+                                id: decoded.id,
+                                username: decoded.username
+                            },
+                            isAuthenticated: true
+                        });
                     } else {
-                         // Invalid token found during hydration check
-                         get().logout();
+                        // Invalid token
+                        removeToken();
+                        set({ token: null, user: null, isAuthenticated: false });
                     }
                 }
             }
         }),
         {
-            name: 'auth-storage', // unique name for localStorage key
-            storage: createJSONStorage(() => localStorage), // use localStorage
-            partialize: (state) => ({ token: state.token }), // Only persist the token itself
-             // onRehydrateStorage: () => (state) => state.hydrateUser(), // Run hydration check after loading token
-             // onRehydrateStorage seems tricky, manual call might be better
+            name: 'auth-storage',
+            storage: createJSONStorage(() => localStorage),
+            partialize: (state) => ({
+                token: state.token,
+                user: state.user,
+                isAuthenticated: state.isAuthenticated
+            })
         }
     )
 );

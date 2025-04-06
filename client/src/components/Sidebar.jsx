@@ -6,19 +6,21 @@ import {
     ListItemButton,
     ListItemIcon,
     ListItemText,
-    Button,
     Typography,
     Alert,
     CircularProgress,
     Box,
-    Collapse
+    Collapse,
+    TextField,
+    InputAdornment,
 } from '@mui/material';
-import AddIcon from '@mui/icons-material/Add';
-import LocalOfferIcon from '@mui/icons-material/LocalOffer';
-import SearchIcon from '@mui/icons-material/Search';
-import LogoutIcon from '@mui/icons-material/Logout';
-import ExpandLess from '@mui/icons-material/ExpandLess';
-import ExpandMore from '@mui/icons-material/ExpandMore';
+import {
+    Add as AddIcon,
+    Search as SearchIcon,
+    Logout as LogoutIcon,
+    Upload as UploadIcon,
+    Clear as ClearIcon,
+} from '@mui/icons-material';
 import useTagStore from '../store/tagStore';
 import useAuthStore from '../store/authStore';
 import useNoteStore from '../store/noteStore';
@@ -29,7 +31,7 @@ function Sidebar({ closeNavbar }) {
     const { tags, fetchTags, isLoading: tagsLoading, error: tagsError } = useTagStore();
     const { logout, user } = useAuthStore();
     const { clearNotes } = useNoteStore();
-    const [tagsOpen, setTagsOpen] = useState(true);
+    const [tagFilter, setTagFilter] = useState('');
 
     useEffect(() => {
         if (user) {
@@ -92,97 +94,143 @@ function Sidebar({ closeNavbar }) {
         ));
     };
 
+    // Filter tags based on search input
+    const filteredTags = tags.filter(tag =>
+        tag.toLowerCase().includes(tagFilter.toLowerCase())
+    );
+
     const tagHierarchy = buildTagHierarchy(tags);
 
     return (
-        <Box sx={{ height: 'calc(100vh - 64px)', display: 'flex', flexDirection: 'column' }}>
+        <Box sx={{
+            height: '100vh',
+            maxHeight: 'calc(100vh - 64px)', // Account for app bar height
+            display: 'flex',
+            flexDirection: 'column',
+            position: 'relative',
+            overflow: 'hidden' // Prevent scrolling of the entire sidebar
+        }}>
             {/* Main Navigation */}
             <List>
-                <ListItemButton
-                    component={Link}
-                    to="/notes/new"
-                    onClick={handleLinkClick}
-                    sx={{
-                        color: 'primary.main',
-                        '&:hover': {
-                            bgcolor: 'rgba(96, 152, 204, 0.08)',
-                        },
-                    }}
-                >
-                    <ListItemIcon>
-                        <AddIcon color="primary" />
-                    </ListItemIcon>
-                    <ListItemText
-                        primary="New Note"
-                        primaryTypographyProps={{
-                            color: 'primary',
-                            fontWeight: 500
-                        }}
-                    />
-                </ListItemButton>
-
-                <ListItemButton
-                    component={Link}
-                    to="/search"
-                    selected={location.pathname === '/search'}
-                    onClick={handleLinkClick}
-                >
-                    <ListItemIcon>
-                        <SearchIcon />
-                    </ListItemIcon>
-                    <ListItemText primary="Search" />
-                </ListItemButton>
-
-                {/* Tags Section */}
-                <ListItemButton onClick={() => setTagsOpen(!tagsOpen)}>
-                    <ListItemIcon>
-                        <LocalOfferIcon />
-                    </ListItemIcon>
-                    <ListItemText primary="Tags" />
-                    {tagsOpen ? <ExpandLess /> : <ExpandMore />}
-                </ListItemButton>
-                <Collapse in={tagsOpen} timeout="auto" unmountOnExit>
-                    <List component="div" disablePadding>
-                        <ListItemButton
-                            component={Link}
-                            to="/"
-                            selected={location.pathname === '/'}
-                            onClick={handleLinkClick}
-                            sx={{ pl: 2 }}
-                        >
-                            <ListItemText primary="All Notes" />
-                        </ListItemButton>
-                        {tagsLoading && (
-                            <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
-                                <CircularProgress size={20} />
-                            </Box>
-                        )}
-                        {tagsError && (
-                            <Alert severity="error" sx={{ mx: 2, my: 1 }}>
-                                {tagsError}
-                            </Alert>
-                        )}
-                        {!tagsLoading && !tagsError && Object.keys(tagHierarchy).length === 0 && (
-                            <Typography variant="body2" color="text.secondary" sx={{ p: 2 }}>
-                                No tags yet
-                            </Typography>
-                        )}
-                        {!tagsLoading && !tagsError && <RenderTagHierarchy hierarchy={tagHierarchy} />}
-                    </List>
-                </Collapse>
+                <ListItem disablePadding>
+                    <ListItemButton onClick={() => {
+                        handleLinkClick();
+                        navigate('/notes/new');
+                    }}>
+                        <ListItemIcon>
+                            <AddIcon />
+                        </ListItemIcon>
+                        <ListItemText primary="New Note" />
+                    </ListItemButton>
+                </ListItem>
+                <ListItem disablePadding>
+                    <ListItemButton
+                        component={Link}
+                        to="/search"
+                        onClick={handleLinkClick}
+                    >
+                        <ListItemIcon>
+                            <SearchIcon />
+                        </ListItemIcon>
+                        <ListItemText primary="Search Notes" />
+                    </ListItemButton>
+                </ListItem>
             </List>
 
-            {/* Logout Button */}
-            <Box sx={{ mt: 'auto', borderTop: 1, borderColor: 'divider' }}>
-                <ListItemButton onClick={handleLogout}>
-                    <ListItemIcon>
-                        <LogoutIcon color="error" />
-                    </ListItemIcon>
-                    <ListItemText
-                        primary={`Logout (${user?.username || 'User'})`}
-                        primaryTypographyProps={{ color: 'error' }}
+            {/* Tags Section - Make it scroll but stop above bottom actions */}
+            <List sx={{
+                flex: 1,
+                overflowY: 'auto',
+                mb: '96px' // Use margin instead of padding to ensure proper spacing
+            }}>
+                {/* Tag Filter Input */}
+                <ListItem sx={{ pb: 1 }}>
+                    <TextField
+                        size="small"
+                        fullWidth
+                        placeholder="Filter tags..."
+                        value={tagFilter}
+                        onChange={(e) => setTagFilter(e.target.value)}
+                        InputProps={{
+                            startAdornment: (
+                                <InputAdornment position="start">
+                                    <SearchIcon fontSize="small" color="action" />
+                                </InputAdornment>
+                            ),
+                            endAdornment: tagFilter && (
+                                <InputAdornment position="end">
+                                    <ClearIcon
+                                        fontSize="small"
+                                        sx={{ cursor: 'pointer' }}
+                                        onClick={() => setTagFilter('')}
+                                    />
+                                </InputAdornment>
+                            ),
+                        }}
                     />
+                </ListItem>
+
+                <ListItemButton
+                    component={Link}
+                    to="/"
+                    selected={location.pathname === '/'}
+                    onClick={handleLinkClick}
+                    sx={{ pl: 2 }}
+                >
+                    <ListItemText primary="All Notes" />
                 </ListItemButton>
+
+                {tagsLoading && (
+                    <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
+                        <CircularProgress size={20} />
+                    </Box>
+                )}
+                {tagsError && (
+                    <Alert severity="error" sx={{ mx: 2, my: 1 }}>
+                        {tagsError}
+                    </Alert>
+                )}
+                {!tagsLoading && !tagsError && Object.keys(tagHierarchy).length === 0 && (
+                    <Typography variant="body2" color="text.secondary" sx={{ p: 2 }}>
+                        No tags yet
+                    </Typography>
+                )}
+                {!tagsLoading && !tagsError && (
+                    <RenderTagHierarchy
+                        hierarchy={buildTagHierarchy(filteredTags)}
+                    />
+                )}
+            </List>
+
+            {/* Bottom Actions - Fixed at bottom */}
+            <Box sx={{
+                position: 'absolute',
+                bottom: 0,
+                left: 0,
+                right: 0,
+                bgcolor: 'background.paper',
+                borderTop: 1,
+                borderColor: 'divider',
+                zIndex: 1 // Ensure it stays above scrolling content
+            }}>
+                <List>
+                    <ListItem disablePadding>
+                        <ListItemButton component={Link} to="/import" onClick={handleLinkClick}>
+                            <ListItemIcon>
+                                <UploadIcon />
+                            </ListItemIcon>
+                            <ListItemText primary="Import Notes" />
+                        </ListItemButton>
+                    </ListItem>
+                    <ListItem disablePadding>
+                        <ListItemButton onClick={handleLogout}>
+                            <ListItemIcon>
+                                <LogoutIcon />
+                            </ListItemIcon>
+                            <ListItemText primary="Logout" />
+                        </ListItemButton>
+                    </ListItem>
+                </List>
             </Box>
         </Box>
     );

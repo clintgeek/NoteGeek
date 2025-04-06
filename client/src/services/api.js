@@ -64,7 +64,15 @@ export const updateFolderApi = (folderId, folderData) => apiClient.put(`/folders
 export const deleteFolderApi = (folderId, cascade = false) => apiClient.delete(`/folders/${folderId}?deleteNotes=${cascade}`);
 
 // Search
-export const searchNotesApi = (query) => apiClient.get(`/search?q=${encodeURIComponent(query)}`);
+export const searchNotesApi = async (query) => {
+    try {
+        const response = await apiClient.get('/search', { params: { q: query } });
+        return response;
+    } catch (error) {
+        console.error('API Search Error:', error);
+        throw error;
+    }
+};
 
 // Export the utility functions
 export const getToken = () => localStorage.getItem('token');

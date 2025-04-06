@@ -13,13 +13,15 @@ import useAuthStore from './store/authStore';
 import './App.css';
 
 // Import actual page components
-import LoginPage from './pages/LoginPage';
-import RegisterPage from './pages/RegisterPage';
+import Login from './components/Login';
+import Register from './components/Register';
 
 // Import main app components
 import NoteList from './components/NoteList';
 import NoteEditor from './components/NoteEditor';
 import NotePage from './pages/NotePage';
+import ImportNotes from './components/ImportNotes';
+import SearchResults from './components/SearchResults';
 
 // Create theme
 const theme = createTheme({
@@ -179,84 +181,42 @@ const TagNotesList = () => {
     );
 };
 
-// Search Results Component
-const SearchResults = () => {
-    return (
-        <>
-            <MUIBreadcrumbs sx={{ mb: 2 }}>
-                <MUILink
-                    component={Link}
-                    to="/"
-                    underline="hover"
-                    color="inherit"
-                    variant="h6"
-                >
-                    Home
-                </MUILink>
-                <Typography color="text.primary" variant="h6">
-                    Search Results
-                </Typography>
-            </MUIBreadcrumbs>
-            <NoteList isSearch={true} />
-        </>
-    );
-};
-
-// Main application view inside the layout with Nested Routes
-const MainApp = () => {
+// Main App Component
+function MainApp() {
     return (
         <Layout>
             <Routes>
-                <Route path="/" element={
-                    <>
-                        <MUIBreadcrumbs sx={{ mb: 2 }}>
-                            <Typography color="text.primary" variant="h6">
-                                All Notes
-                            </Typography>
-                        </MUIBreadcrumbs>
-                        <NoteList />
-                    </>
-                } />
-                <Route path="/tags/:tag" element={<TagNotesList />} />
-                <Route path="/search" element={<SearchResults />} />
+                <Route path="/" element={<NoteList />} />
                 <Route path="/notes/new" element={<NoteEditor />} />
                 <Route path="/notes/:id" element={<NotePage />} />
                 <Route path="/notes/:id/edit" element={<NotePage />} />
-                <Route path="*" element={<div>Page Not Found within App</div>} />
+                <Route path="/import" element={<ImportNotes />} />
+                <Route path="/search" element={<SearchResults />} />
+                <Route path="/tags/:tag" element={<TagNotesList />} />
+                <Route path="*" element={<div>Page Not Found</div>} />
             </Routes>
         </Layout>
     );
-};
-
-// Protected Route Component
-const ProtectedRoute = ({ children }) => {
-    const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
-    return isAuthenticated ? children : <Navigate to="/login" />;
-};
+}
 
 // Main App Component
 function App() {
-    // Attempt to hydrate user state on initial load
-    const hydrateUser = useAuthStore((state) => state.hydrateUser);
+    const { hydrateUser } = useAuthStore();
+
     useEffect(() => {
         hydrateUser();
     }, [hydrateUser]);
+
+    const { isAuthenticated } = useAuthStore();
 
     return (
         <ThemeProvider theme={theme}>
             <CssBaseline />
             <Router>
                 <Routes>
-                    <Route path="/login" element={<LoginPage />} />
-                    <Route path="/register" element={<RegisterPage />} />
-                    <Route
-                        path="/*"
-                        element={
-                            <ProtectedRoute>
-                                <MainApp />
-                            </ProtectedRoute>
-                        }
-                    />
+                    <Route path="/login" element={!isAuthenticated ? <Login /> : <Navigate to="/" />} />
+                    <Route path="/register" element={!isAuthenticated ? <Register /> : <Navigate to="/" />} />
+                    <Route path="/*" element={isAuthenticated ? <MainApp /> : <Navigate to="/login" />} />
                 </Routes>
             </Router>
         </ThemeProvider>

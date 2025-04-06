@@ -11,11 +11,16 @@ function NotePage() {
     const { fetchNoteById, isLoadingSelected, selectedError, selectedNote, clearSelectedNote } = useNoteStore();
 
     useEffect(() => {
-        if (id) {
+        // Only fetch if we have an ID and it's not 'new'
+        if (id && id !== 'new') {
             fetchNoteById(id);
         }
         return () => clearSelectedNote();
     }, [id, fetchNoteById, clearSelectedNote]);
+
+    if (id === 'new') {
+        return <NoteEditor />;
+    }
 
     if (isLoadingSelected && !selectedNote) {
         return (
