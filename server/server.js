@@ -9,7 +9,6 @@ import connectDB from './config/db.js'; // Import database connection
 // Import route files
 import authRoutes from './routes/auth.js';
 import noteRoutes from './routes/notes.js'; // Import note routes
-import folderRoutes from './routes/folders.js'; // Import folder routes
 import tagRoutes from './routes/tags.js'; // Import tag routes
 import searchRoutes from './routes/search.js'; // Import search routes
 
@@ -29,41 +28,23 @@ connectDB();
 // Initialize Express app
 const app = express();
 
-// Define CORS Options first
-const allowedOrigins = ['http://localhost:5173']; // Whitelist
-const corsOptions = {
-  origin: function (origin, callback) { // Use function check
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.indexOf(origin) === -1) {
-      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
-      return callback(new Error(msg), false);
-    }
-    return callback(null, true);
-  },
-  // origin: '*', // Revert temporary wildcard
-  methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
-  allowedHeaders: "Content-Type,Authorization",
+// Enable CORS for all routes
+app.use(cors({
+  origin: 'http://localhost:5173',
   credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
   optionsSuccessStatus: 200
-};
-
-// Apply CORS middleware FIRST using the defined options
-app.use(cors(corsOptions));
+}));
 
 // Add request origin logging
 app.use((req, res, next) => {
   console.log('Request Origin:', req.get('Origin'));
-  console.log('Request Method:', req.method); // Also log method
+  console.log('Request Method:', req.method);
   next();
 });
 
 // Other Middleware
-// CORS Configuration - keeping definition here for clarity - moved above
-// const allowedOrigins = ['http://localhost:5173']; // Whitelist - Temporarily disabling whitelist
-// const corsOptions = { ... }; // Definition moved above
-// app.use(cors(corsOptions)); // Moved this line up
-
 app.use(express.json()); // Parse JSON request bodies
 app.use(express.urlencoded({ extended: false })); // Parse URL-encoded request bodies
 
@@ -74,10 +55,9 @@ if (process.env.NODE_ENV === 'development') {
 
 // Mount Routers
 app.use('/api/auth', authRoutes);
-app.use('/api/notes', noteRoutes); // Mount note routes
-app.use('/api/folders', folderRoutes); // Mount folder routes
-app.use('/api/tags', tagRoutes); // Mount tag routes
-app.use('/api/search', searchRoutes); // Mount search routes
+app.use('/api/notes', noteRoutes);
+app.use('/api/tags', tagRoutes);
+app.use('/api/search', searchRoutes);
 
 // Basic route for testing
 app.get('/', (req, res) => {
@@ -85,7 +65,7 @@ app.get('/', (req, res) => {
 });
 
 // Define port
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 
 // Start the server
 app.listen(PORT, () => {

@@ -1,218 +1,190 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { NavLink, ScrollArea, Loader, Text, Button, TextInput, Alert } from '@mantine/core';
-import { IconFolderPlus, IconPlus, IconFolder, IconTrash, IconSettings, IconLogout } from '@tabler/icons-react';
-import useFolderStore from '../store/folderStore';
+import {
+    List,
+    ListItem,
+    ListItemButton,
+    ListItemIcon,
+    ListItemText,
+    Button,
+    Typography,
+    Alert,
+    CircularProgress,
+    Box,
+    Collapse
+} from '@mui/material';
+import AddIcon from '@mui/icons-material/Add';
+import LocalOfferIcon from '@mui/icons-material/LocalOffer';
+import SearchIcon from '@mui/icons-material/Search';
+import LogoutIcon from '@mui/icons-material/Logout';
+import ExpandLess from '@mui/icons-material/ExpandLess';
+import ExpandMore from '@mui/icons-material/ExpandMore';
 import useTagStore from '../store/tagStore';
 import useAuthStore from '../store/authStore';
 import useNoteStore from '../store/noteStore';
-// import { IconHome2, IconNotebook, IconTag, IconSearch, IconSettings, IconLogout } from '@tabler/icons-react'; // Example icons
 
 function Sidebar({ closeNavbar }) {
-    const location = useLocation(); // Get current path for active state
+    const location = useLocation();
     const navigate = useNavigate();
-    const { folders, fetchFolders, createFolder, clearFolders, isLoading: foldersLoading, error: foldersError } = useFolderStore();
     const { tags, fetchTags, isLoading: tagsLoading, error: tagsError } = useTagStore();
     const { logoutUser, user } = useAuthStore();
     const { clearNotes } = useNoteStore();
-
-    // State for the new folder input
-    const [showNewFolderInput, setShowNewFolderInput] = useState(false);
-    const [newFolderName, setNewFolderName] = useState('');
-    const [createError, setCreateError] = useState(null);
+    const [tagsOpen, setTagsOpen] = useState(true);
 
     useEffect(() => {
         if (user) {
-            fetchFolders();
-            // fetchTags(); // Uncomment if tags are still needed
+            console.log('Sidebar: Fetching tags for user:', user.username);
+            fetchTags();
+        } else {
+            console.log('Sidebar: No user available for tag fetch');
         }
-    }, [fetchFolders, fetchTags, user]);
-
-    // Combined loading state for simplicity in UI
-    const isLoading = foldersLoading || tagsLoading;
+    }, [fetchTags, user]);
 
     const handleLinkClick = () => {
-        // Close navbar on mobile after link click, if function provided
         closeNavbar?.();
     };
 
     const handleLogout = () => {
-        handleLinkClick(); // Close navbar first
+        handleLinkClick();
         logoutUser();
-        clearFolders(); // Now defined
         clearNotes();
-        // clearTags(); // Add if a clearTags function exists in tagStore
         navigate('/login');
     };
 
-    const handleCreateFolder = async () => {
-        if (!newFolderName.trim()) {
-            setCreateError("Folder name cannot be empty.");
-            return;
-        }
-        setCreateError(null);
-        try {
-            await createFolder({ name: newFolderName.trim() });
-            setNewFolderName('');
-            setShowNewFolderInput(false);
-            // Optionally: Focus the new folder in the list or navigate?
-        } catch (error) {
-            console.error("Sidebar folder creation error:", error);
-            setCreateError(error.message || "Failed to create folder. Please try again.");
-        }
+    // Function to build hierarchical tag structure
+    const buildTagHierarchy = (tags) => {
+        const hierarchy = {};
+        tags.forEach(tag => {
+            const parts = tag.split('/');
+            let current = hierarchy;
+            let currentPath = '';
+            parts.forEach(part => {
+                currentPath = currentPath ? `${currentPath}/${part}` : part;
+                if (!current[part]) {
+                    current[part] = {
+                        path: currentPath,
+                        children: {}
+                    };
+                }
+                current = current[part].children;
+            });
+        });
+        return hierarchy;
     };
 
-    const handleNewFolderKeyDown = (event) => {
-        if (event.key === 'Enter') {
-            handleCreateFolder();
-        }
-        if (event.key === 'Escape') {
-            setShowNewFolderInput(false);
-            setNewFolderName('');
-            setCreateError(null);
-        }
+    // Recursive component to render tag hierarchy
+    const RenderTagHierarchy = ({ hierarchy, level = 0 }) => {
+        return Object.entries(hierarchy).map(([tag, data]) => (
+            <div key={data.path}>
+                <ListItemButton
+                    component={Link}
+                    to={`/tags/${encodeURIComponent(data.path)}`}
+                    selected={location.pathname === `/tags/${encodeURIComponent(data.path)}`}
+                    onClick={handleLinkClick}
+                    sx={{ pl: level * 3 + 2 }}
+                >
+                    <ListItemText primary={tag} />
+                </ListItemButton>
+                {Object.keys(data.children).length > 0 && (
+                    <RenderTagHierarchy hierarchy={data.children} level={level + 1} />
+                )}
+            </div>
+        ));
     };
+
+    const tagHierarchy = buildTagHierarchy(tags);
 
     return (
-        <ScrollArea h="calc(100vh - 60px)"> {/* Adjust height based on header */}
-            {/* Add New Note Button at the top */}
-            <Button
-                component={Link}
-                to="/notes/new"
-                fullWidth
-                mb="md"
-                leftSection={<IconPlus size={16} />}
-                onClick={handleLinkClick}
-            >
-                New Note
-            </Button>
-
-            <NavLink
-                label="All Notes"
-                component={Link}
-                to="/"
-                active={location.pathname === '/'} // Basic active check
-                // leftSection={<IconNotebook size="1rem" stroke={1.5} />}
-                onClick={handleLinkClick}
-            />
-            <NavLink
-                label="Search"
-                component={Link}
-                to="/search" // Define this route later
-                active={location.pathname === '/search'}
-                // leftSection={<IconSearch size="1rem" stroke={1.5} />}
-                onClick={handleLinkClick}
-            />
-
-            {/* Folders Section */}
-            <div style={{ marginBottom: 'var(--mantine-spacing-lg)' }}>
-                <h3 style={{ marginBottom: 'var(--mantine-spacing-xs)', fontSize: 'var(--mantine-font-size-sm)', fontWeight: 500, color: 'var(--mantine-color-gray-7)' }}>Folders</h3>
-                {foldersLoading && <Loader size="xs" ml="md"/>}
-                {foldersError && <Alert color="red" title="Error" size="xs" ml="md">{foldersError}</Alert>}
-                {!foldersLoading && !foldersError && folders.length === 0 && !showNewFolderInput && <Text c="dimmed" size="xs" ml="md">No folders</Text>}
-                {!foldersLoading && !foldersError && folders.map((folder) => (
-                    <NavLink
-                        key={folder._id}
-                        label={folder.name}
-                        component={Link}
-                        to={`/folders/${folder._id}`}
-                        active={location.pathname === `/folders/${folder._id}`}
-                        leftSection={<IconFolder size={16} />}
-                        onClick={handleLinkClick}
-                        // Basic styling for NavLink items
-                        styles={{
-                            root: {
-                                paddingLeft: 'var(--mantine-spacing-sm)',
-                                paddingRight: 'var(--mantine-spacing-sm)',
-                                marginBottom: '2px',
-                            }
+        <Box sx={{ height: 'calc(100vh - 64px)', display: 'flex', flexDirection: 'column' }}>
+            {/* Main Navigation */}
+            <List>
+                <ListItemButton
+                    component={Link}
+                    to="/notes/new"
+                    onClick={handleLinkClick}
+                    sx={{
+                        color: 'primary.main',
+                        '&:hover': {
+                            bgcolor: 'rgba(96, 152, 204, 0.08)',
+                        },
+                    }}
+                >
+                    <ListItemIcon>
+                        <AddIcon color="primary" />
+                    </ListItemIcon>
+                    <ListItemText
+                        primary="New Note"
+                        primaryTypographyProps={{
+                            color: 'primary',
+                            fontWeight: 500
                         }}
                     />
-                ))}
-                {!foldersLoading && !foldersError && folders.length === 0 && !showNewFolderInput && <Text c="dimmed" size="xs" ml="md">No folders yet.</Text>}
+                </ListItemButton>
 
-                {showNewFolderInput && (
-                    <div style={{ paddingLeft: 'var(--mantine-spacing-sm)', paddingRight: 'var(--mantine-spacing-sm)', marginTop: 'var(--mantine-spacing-xs)' }}>
-                        <TextInput
-                            placeholder="New folder name..."
-                            value={newFolderName}
-                            onChange={(event) => setNewFolderName(event.currentTarget.value)}
-                            onKeyDown={handleNewFolderKeyDown}
-                            error={createError}
-                            disabled={foldersLoading}
-                            autoFocus
-                            size="xs"
-                            rightSection={
-                                <Button
-                                    variant="subtle"
-                                    size="xs"
-                                    onClick={handleCreateFolder}
-                                    loading={foldersLoading}
-                                    disabled={!newFolderName.trim()}
-                                    p={0}
-                                    style={{ height: 'auto' }}
-                                >
-                                    Save
-                                </Button>
-                            }
-                        />
-                    </div>
-                )}
+                <ListItemButton
+                    component={Link}
+                    to="/search"
+                    selected={location.pathname === '/search'}
+                    onClick={handleLinkClick}
+                >
+                    <ListItemIcon>
+                        <SearchIcon />
+                    </ListItemIcon>
+                    <ListItemText primary="Search" />
+                </ListItemButton>
 
-                {!showNewFolderInput && (
-                    <Button
-                        variant="subtle"
-                        color="gray"
-                        leftSection={<IconFolderPlus size={16} />}
-                        onClick={() => {
-                            setShowNewFolderInput(true);
-                            setCreateError(null);
-                        }}
-                        fullWidth
-                        justify="left"
-                        mt="xs"
-                        styles={{ root: { paddingLeft: 'var(--mantine-spacing-sm)' }}}
-                    >
-                        New Folder
-                    </Button>
-                )}
-            </div>
-
-            {/* Tags Section */}
-            <NavLink
-                label="Tags"
-                // leftSection={<IconTag size="1rem" stroke={1.5} />}
-                childrenOffset={28}
-                defaultOpened
-            >
-                {isLoading && <Loader size="xs" ml="md" />}
-                {tagsError && <Text c="red" size="xs" ml="md">Error</Text>}
-                {!isLoading && !tagsError && tags.length === 0 && <Text c="dimmed" size="xs" ml="md">No tags</Text>}
-                {!isLoading && !tagsError && tags.map((tag) => (
-                    <NavLink
-                        key={tag} // Tags are just strings from distinct query
-                        label={tag}
-                        component={Link}
-                        to={`/tags/${tag}`}
-                        active={location.pathname === `/tags/${tag}`}
-                        onClick={handleLinkClick}
-                    />
-                ))}
-            </NavLink>
-
-            {/* TODO: Add Settings Link */}
+                {/* Tags Section */}
+                <ListItemButton onClick={() => setTagsOpen(!tagsOpen)}>
+                    <ListItemIcon>
+                        <LocalOfferIcon />
+                    </ListItemIcon>
+                    <ListItemText primary="Tags" />
+                    {tagsOpen ? <ExpandLess /> : <ExpandMore />}
+                </ListItemButton>
+                <Collapse in={tagsOpen} timeout="auto" unmountOnExit>
+                    <List component="div" disablePadding>
+                        <ListItemButton
+                            component={Link}
+                            to="/"
+                            selected={location.pathname === '/'}
+                            onClick={handleLinkClick}
+                            sx={{ pl: 2 }}
+                        >
+                            <ListItemText primary="All Notes" />
+                        </ListItemButton>
+                        {tagsLoading && (
+                            <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
+                                <CircularProgress size={20} />
+                            </Box>
+                        )}
+                        {tagsError && (
+                            <Alert severity="error" sx={{ mx: 2, my: 1 }}>
+                                {tagsError}
+                            </Alert>
+                        )}
+                        {!tagsLoading && !tagsError && Object.keys(tagHierarchy).length === 0 && (
+                            <Typography variant="body2" color="text.secondary" sx={{ p: 2 }}>
+                                No tags yet
+                            </Typography>
+                        )}
+                        {!tagsLoading && !tagsError && <RenderTagHierarchy hierarchy={tagHierarchy} />}
+                    </List>
+                </Collapse>
+            </List>
 
             {/* Logout Button */}
-            <div style={{ marginTop: 'auto', paddingTop: 'var(--mantine-spacing-md)', borderTop: '1px solid var(--mantine-color-gray-2)' }}>
-                 <NavLink
-                    label={`Logout (${user?.username || 'User'})`}
-                    leftSection={<IconLogout size={16} />}
-                    onClick={handleLogout}
-                    color="red"
-                    styles={{ root: { paddingLeft: 'var(--mantine-spacing-sm)' }}}
-                />
-            </div>
-        </ScrollArea>
+            <Box sx={{ mt: 'auto', borderTop: 1, borderColor: 'divider' }}>
+                <ListItemButton onClick={handleLogout}>
+                    <ListItemIcon>
+                        <LogoutIcon color="error" />
+                    </ListItemIcon>
+                    <ListItemText
+                        primary={`Logout (${user?.username || 'User'})`}
+                        primaryTypographyProps={{ color: 'error' }}
+                    />
+                </ListItemButton>
+            </Box>
+        </Box>
     );
 }
 

@@ -1,23 +1,36 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Container, Paper, Title, TextInput, PasswordInput, Button, Text, Alert } from '@mantine/core';
+import { useNavigate, Link as RouterLink } from 'react-router-dom';
+import {
+    Container,
+    Paper,
+    Typography,
+    TextField,
+    Button,
+    Box,
+    Link,
+    Alert,
+    IconButton,
+    InputAdornment
+} from '@mui/material';
+import { Visibility, VisibilityOff } from '@mui/icons-material';
 import useAuthStore from '../store/authStore';
-// import { IconAlertCircle } from '@tabler/icons-react';
 
 function RegisterPage() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
-    const [formError, setFormError] = useState(null); // For client-side errors like password mismatch
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    const [formError, setFormError] = useState(null);
     const register = useAuthStore((state) => state.register);
     const isLoading = useAuthStore((state) => state.isLoading);
-    const apiError = useAuthStore((state) => state.error); // Renamed to avoid conflict
+    const apiError = useAuthStore((state) => state.error);
     const navigate = useNavigate();
 
     const handleSubmit = async (event) => {
         event.preventDefault();
-        setFormError(null); // Clear previous client-side errors
-        useAuthStore.setState({ error: null }); // Clear previous API errors
+        setFormError(null);
+        useAuthStore.setState({ error: null });
 
         if (password !== confirmPassword) {
             setFormError('Passwords do not match');
@@ -30,60 +43,138 @@ function RegisterPage() {
 
         const success = await register(email, password);
         if (success) {
-            navigate('/'); // Navigate to main app on successful registration
+            navigate('/');
         }
     };
 
-    return (
-        <Container size={420} my={40}>
-            <Title ta="center">Create Account</Title>
-            <Text c="dimmed" size="sm" ta="center" mt={5} mb={30}>
-                Already have an account? {' '}
-                <Text component="a" href="/login" size="sm">
-                    Log in
-                </Text>
-            </Text>
+    const handleClickShowPassword = () => {
+        setShowPassword(!showPassword);
+    };
 
-            <Paper withBorder shadow="md" p={30} mt={30} radius="md">
-                 {(formError || apiError) && (
+    const handleClickShowConfirmPassword = () => {
+        setShowConfirmPassword(!showConfirmPassword);
+    };
+
+    return (
+        <Container maxWidth="sm" sx={{
+            minHeight: '100vh',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+            py: 8
+        }}>
+            <Box sx={{ textAlign: 'center', mb: 3 }}>
+                <Typography variant="h4" component="h1" gutterBottom>
+                    Create Account
+                </Typography>
+                <Typography variant="body1" color="text.secondary">
+                    Already have an account?{' '}
+                    <Link component={RouterLink} to="/login" color="primary">
+                        Sign in
+                    </Link>
+                </Typography>
+            </Box>
+
+            <Paper
+                elevation={2}
+                sx={{
+                    p: 4,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 2,
+                    bgcolor: 'background.paper',
+                    borderRadius: 2
+                }}
+            >
+                {(formError || apiError) && (
                     <Alert
-                        variant="light"
-                        color="red"
-                        title="Registration Failed"
-                        // icon={<IconAlertCircle />}
-                        withCloseButton
-                        onClose={() => { setFormError(null); useAuthStore.setState({ error: null }); }}
-                        mb="md"
+                        severity="error"
+                        onClose={() => {
+                            setFormError(null);
+                            useAuthStore.setState({ error: null });
+                        }}
+                        sx={{ mb: 2 }}
                     >
                         {formError || apiError}
                     </Alert>
-                 )}
-                <form onSubmit={handleSubmit}>
-                    <TextInput
+                )}
+
+                <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                    <TextField
                         label="Email"
-                        placeholder="you@example.com"
+                        type="email"
                         required
+                        fullWidth
                         value={email}
-                        onChange={(event) => setEmail(event.currentTarget.value)}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="you@example.com"
+                        autoComplete="email"
                     />
-                    <PasswordInput
+
+                    <TextField
                         label="Password"
-                        placeholder="Your password"
+                        type={showPassword ? 'text' : 'password'}
                         required
-                        mt="md"
+                        fullWidth
                         value={password}
-                        onChange={(event) => setPassword(event.currentTarget.value)}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="Your password"
+                        autoComplete="new-password"
+                        InputProps={{
+                            endAdornment: (
+                                <InputAdornment position="end">
+                                    <IconButton
+                                        aria-label="toggle password visibility"
+                                        onClick={handleClickShowPassword}
+                                        edge="end"
+                                    >
+                                        {showPassword ? <VisibilityOff /> : <Visibility />}
+                                    </IconButton>
+                                </InputAdornment>
+                            ),
+                        }}
                     />
-                     <PasswordInput
+
+                    <TextField
                         label="Confirm Password"
-                        placeholder="Confirm your password"
+                        type={showConfirmPassword ? 'text' : 'password'}
                         required
-                        mt="md"
+                        fullWidth
                         value={confirmPassword}
-                        onChange={(event) => setConfirmPassword(event.currentTarget.value)}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        placeholder="Confirm your password"
+                        autoComplete="new-password"
+                        InputProps={{
+                            endAdornment: (
+                                <InputAdornment position="end">
+                                    <IconButton
+                                        aria-label="toggle password visibility"
+                                        onClick={handleClickShowConfirmPassword}
+                                        edge="end"
+                                    >
+                                        {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
+                                    </IconButton>
+                                </InputAdornment>
+                            ),
+                        }}
                     />
-                    <Button type="submit" fullWidth mt="xl" loading={isLoading}>
-                        Register
+
+                    <Button
+                        type="submit"
+                        variant="contained"
+                        fullWidth
+                        size="large"
+                        disabled={isLoading}
+                        sx={{
+                            mt: 2,
+                            py: 1.5,
+                            bgcolor: 'primary.main',
+                            '&:hover': {
+                                bgcolor: 'primary.dark',
+                            },
+                        }}
+                    >
+                        {isLoading ? 'Creating account...' : 'Create account'}
                     </Button>
                 </form>
             </Paper>

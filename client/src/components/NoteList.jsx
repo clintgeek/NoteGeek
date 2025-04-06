@@ -1,65 +1,109 @@
 import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { List, ThemeIcon, Loader, Text, Alert, Anchor, Title } from '@mantine/core';
-// import { IconCircleDashed } from '@tabler/icons-react'; // Example icon
+import {
+    List,
+    ListItem,
+    ListItemText,
+    Typography,
+    Alert,
+    CircularProgress,
+    Link as MuiLink,
+    Box,
+    Chip
+} from '@mui/material';
 import useNoteStore from '../store/noteStore';
-import useFolderStore from '../store/folderStore';
 
-// Accept folderId and tag props for filtering
-function NoteList({ folderId, tag }) {
+// Accept tag and prefix props for filtering
+function NoteList({ tag, prefix }) {
     const notes = useNoteStore((state) => state.notes);
     const isLoadingList = useNoteStore((state) => state.isLoadingList);
     const listError = useNoteStore((state) => state.listError);
     const fetchNotes = useNoteStore((state) => state.fetchNotes);
 
-    // Get folders to look up the name
-    const folders = useFolderStore((state) => state.folders);
-
     useEffect(() => {
         const filters = {};
-        if (folderId) filters.folderId = folderId;
         if (tag) filters.tag = tag;
+        if (prefix) filters.prefix = prefix;
 
-        fetchNotes(filters); // Fetch notes with filters when component mounts or filters change
-    }, [fetchNotes, folderId, tag]); // Add folderId and tag to dependency array
+        fetchNotes(filters);
+    }, [fetchNotes, tag, prefix]);
 
     if (isLoadingList) {
-        return <Loader />; // Display loader while fetching
+        return (
+            <Box display="flex" justifyContent="center" p={2}>
+                <CircularProgress />
+            </Box>
+        );
     }
 
     if (listError) {
         return (
-            <Alert color="red" title="Error loading notes">
+            <Alert severity="error">
                 {listError}
             </Alert>
         );
     }
 
-    // Get folder name if we're viewing a folder
-    const currentFolder = folderId ? folders.find(f => f._id === folderId) : null;
+    if (notes.length === 0) {
+        return (
+            <Typography color="text.secondary">
+                No notes found. Create one!
+            </Typography>
+        );
+    }
 
     return (
-        <>
-            {!currentFolder && !tag && notes.length === 0 && (
-                <Text>No notes found. Create one!</Text>
-            )}
-            {notes.length > 0 && (
-                <List
-                    spacing="xs"
-                    size="sm"
-                    center
-                >
-                    {notes.map((note) => (
-                        <List.Item key={note._id}>
-                            <Anchor component={Link} to={`/notes/${note._id}`}>
-                                {note.title || 'Untitled Note'}
-                            </Anchor>
-                            {note.isLocked && ' (Locked)'}
-                        </List.Item>
-                    ))}
-                </List>
-            )}
-        </>
+        <List>
+            {notes.map((note) => (
+                <ListItem key={note._id} disablePadding sx={{ mb: 1 }}>
+                    <ListItemText
+                        primary={
+                            <Box display="flex" alignItems="center" gap={1}>
+                                <MuiLink
+                                    component={Link}
+                                    to={`/notes/${note._id}`}
+                                    color="primary"
+                                    underline="hover"
+                                    sx={{ fontWeight: 500 }}
+                                >
+                                    {note.title || 'Untitled Note'}
+                                </MuiLink>
+                                {note.isLocked && (
+                                    <Typography
+                                        component="span"
+                                        variant="caption"
+                                        color="error"
+                                        sx={{ ml: 1 }}
+                                    >
+                                        (Locked)
+                                    </Typography>
+                                )}
+                            </Box>
+                        }
+                        secondary={
+                            note.tags.length > 0 && (
+                                <Typography
+                                    component="div"
+                                    variant="body2"
+                                    sx={{ mt: 0.5 }}
+                                >
+                                    {note.tags.map((tag, index) => (
+                                        <Chip
+                                            key={index}
+                                            label={tag}
+                                            size="small"
+                                            variant="outlined"
+                                            sx={{ mr: 0.5, mb: 0.5 }}
+                                            component="span"
+                                        />
+                                    ))}
+                                </Typography>
+                            )
+                        }
+                    />
+                </ListItem>
+            ))}
+        </List>
     );
 }
 

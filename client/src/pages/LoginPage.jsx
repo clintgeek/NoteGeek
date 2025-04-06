@@ -1,12 +1,24 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Container, Paper, Title, TextInput, PasswordInput, Button, Text, Alert } from '@mantine/core';
+import { useNavigate, Link as RouterLink } from 'react-router-dom';
+import {
+    Container,
+    Paper,
+    Typography,
+    TextField,
+    Button,
+    Box,
+    Link,
+    Alert,
+    IconButton,
+    InputAdornment
+} from '@mui/material';
+import { Visibility, VisibilityOff } from '@mui/icons-material';
 import useAuthStore from '../store/authStore';
-// import { IconAlertCircle } from '@tabler/icons-react'; // Optional icon for errors
 
 function LoginPage() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
     const login = useAuthStore((state) => state.login);
     const isLoading = useAuthStore((state) => state.isLoading);
     const error = useAuthStore((state) => state.error);
@@ -16,53 +28,107 @@ function LoginPage() {
         event.preventDefault();
         const success = await login(email, password);
         if (success) {
-            navigate('/'); // Navigate to main app on successful login
+            navigate('/');
         }
     };
 
-    return (
-        <Container size={420} my={40}>
-            <Title ta="center">Welcome back!</Title>
-            <Text c="dimmed" size="sm" ta="center" mt={5} mb={30}>
-                Do not have an account yet? {' '}
-                <Text component="a" href="/register" size="sm">
-                    Create account
-                </Text>
-            </Text>
+    const handleClickShowPassword = () => {
+        setShowPassword(!showPassword);
+    };
 
-            <Paper withBorder shadow="md" p={30} mt={30} radius="md">
+    return (
+        <Container maxWidth="sm" sx={{
+            minHeight: '100vh',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+            py: 8
+        }}>
+            <Box sx={{ textAlign: 'center', mb: 3 }}>
+                <Typography variant="h4" component="h1" gutterBottom>
+                    Welcome back!
+                </Typography>
+                <Typography variant="body1" color="text.secondary">
+                    Do not have an account yet?{' '}
+                    <Link component={RouterLink} to="/register" color="primary">
+                        Create account
+                    </Link>
+                </Typography>
+            </Box>
+
+            <Paper
+                elevation={2}
+                sx={{
+                    p: 4,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 2,
+                    bgcolor: 'background.paper',
+                    borderRadius: 2
+                }}
+            >
                 {error && (
                     <Alert
-                        variant="light"
-                        color="red"
-                        title="Login Failed"
-                        // icon={<IconAlertCircle />}
-                        withCloseButton
-                        onClose={() => useAuthStore.setState({ error: null })} // Clear error on close
-                        mb="md"
+                        severity="error"
+                        onClose={() => useAuthStore.setState({ error: null })}
+                        sx={{ mb: 2 }}
                     >
                         {error}
                     </Alert>
                 )}
-                <form onSubmit={handleSubmit}>
-                    <TextInput
+
+                <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                    <TextField
                         label="Email"
-                        placeholder="you@example.com"
+                        type="email"
                         required
+                        fullWidth
                         value={email}
-                        onChange={(event) => setEmail(event.currentTarget.value)}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="you@example.com"
+                        autoComplete="email"
                     />
-                    <PasswordInput
+
+                    <TextField
                         label="Password"
-                        placeholder="Your password"
+                        type={showPassword ? 'text' : 'password'}
                         required
-                        mt="md"
+                        fullWidth
                         value={password}
-                        onChange={(event) => setPassword(event.currentTarget.value)}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="Your password"
+                        autoComplete="current-password"
+                        InputProps={{
+                            endAdornment: (
+                                <InputAdornment position="end">
+                                    <IconButton
+                                        aria-label="toggle password visibility"
+                                        onClick={handleClickShowPassword}
+                                        edge="end"
+                                    >
+                                        {showPassword ? <VisibilityOff /> : <Visibility />}
+                                    </IconButton>
+                                </InputAdornment>
+                            ),
+                        }}
                     />
-                    {/* Add Remember me checkbox later if needed */}
-                    <Button type="submit" fullWidth mt="xl" loading={isLoading}>
-                        Sign in
+
+                    <Button
+                        type="submit"
+                        variant="contained"
+                        fullWidth
+                        size="large"
+                        disabled={isLoading}
+                        sx={{
+                            mt: 2,
+                            py: 1.5,
+                            bgcolor: 'primary.main',
+                            '&:hover': {
+                                bgcolor: 'primary.dark',
+                            },
+                        }}
+                    >
+                        {isLoading ? 'Signing in...' : 'Sign in'}
                     </Button>
                 </form>
             </Paper>

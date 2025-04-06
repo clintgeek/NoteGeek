@@ -5,11 +5,13 @@ import Note from '../models/Note.js';
 // @access  Private
 export const getTags = async (req, res) => {
   const userId = req.user._id;
+  console.log('Fetching tags for user:', userId);
 
   try {
     // Use the distinct() method to get unique tags for the user
     // It operates directly on the 'tags' array field within the notes
     const tags = await Note.distinct('tags', { userId: userId });
+    console.log('Found tags:', tags);
 
     // Sort tags alphabetically for consistency
     tags.sort((a, b) => a.localeCompare(b));

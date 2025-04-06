@@ -1,6 +1,12 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { login as loginApi, register as registerApi, setToken, removeToken, getToken } from '../services/api';
+import {
+    loginApi as login,
+    registerApi as register,
+    setToken,
+    removeToken,
+    getToken
+} from '../services/api';
 
 // Helper to decode JWT (basic, doesn't verify signature)
 // A more robust solution might involve a library like jwt-decode
@@ -28,7 +34,7 @@ const useAuthStore = create(
             login: async (email, password) => {
                 set({ isLoading: true, error: null });
                 try {
-                    const response = await loginApi({ email, password });
+                    const response = await login({ email, password });
                     const { token, ...userData } = response.data; // Separate token from user data
                     setToken(token); // Store token in localStorage via api service function
                     set({
@@ -51,7 +57,7 @@ const useAuthStore = create(
             register: async (email, password) => {
                 set({ isLoading: true, error: null });
                  try {
-                    const response = await registerApi({ email, password });
+                    const response = await register({ email, password });
                     const { token, ...userData } = response.data;
                     setToken(token);
                     set({

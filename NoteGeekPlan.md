@@ -1,11 +1,15 @@
 # NoteGeek Build Plan for AI Assistant (Sage)
 
 ## 0. Project Goal & Overview
-*   **Objective**: Build NoteGeek - a lightweight, markdown-based PWA note-taking app.
+*   **Objective**: Build NoteGeek - a lightweight, markdown-based PWA note-taking app as part of the GeekSuite collection.
 *   **Target User**: Developers & Geeks.
 *   **Core Features**: Markdown editor/viewer, folder/tag organization, note locking, note encryption, search, PWA support, Dockerized deployment, Backup system (local/Nextcloud).
+*   **GeekSuite Integration**:
+    *   Part of a larger suite of custom applications
+    *   Shares consistent tech stack and design patterns with other GeekSuite apps
+    *   References FitnessGeek for UI/UX patterns
 *   **Tech Stack**:
-    *   Frontend: React (PWA only, no React Native), **Mantine UI**, SASS
+    *   Frontend: React (PWA only, no React Native), **Material-UI (MUI)**, SASS
     *   Backend: Node.js, Express
     *   Database: MongoDB
     *   Containerization: Docker, Docker Compose
@@ -87,9 +91,9 @@
 3.1.  **Initialize Project**:
     *   `cd client`
     *   Create React app: `npm create vite@latest . -- --template react` (Using Vite)
-    *   Install dependencies: `npm install react-router-dom axios sass react-markdown @mantine/core @mantine/hooks zustand`
-    *   Install dev dependencies: `npm install -D postcss postcss-preset-mantine postcss-simple-vars` (Needed for Mantine setup)
-    *   *State Management*: Start with React Context API for simplicity? *Chef: Or prefer Redux Toolkit/Zustand from the start?*
+    *   Install dependencies: `npm install react-router-dom axios sass react-markdown @mui/material @mui/icons-material @emotion/react @emotion/styled zustand`
+    *   Install dev dependencies: `npm install -D @vitejs/plugin-react` (for Vite + React)
+    *   *State Management*: Using Zustand for state management (confirmed)
 3.2.  **Project Structure**:
     *   Organize into `components/`, `pages/`, `contexts/`, `hooks/`, `services/`, `styles/`.
     *   Setup SASS: `styles/main.scss` importing partials (base, components, layout).
@@ -120,8 +124,8 @@
     *   Implement search UI and functionality.
     *   Implement locking/encryption UI (password prompts, visual indicators).
 3.8.  **Styling (`styles/`)**:
-    *   Utilize **Mantine UI** components for core UI elements (layout, forms, buttons, modals, etc.).
-    *   Configure Mantine theme (colors, typography, etc.).
+    *   Utilize **Material-UI (MUI)** components for core UI elements (layout, forms, buttons, modals, etc.).
+    *   Configure MUI theme (colors, typography, etc.).
     *   Use SASS for custom component styles, overrides, or global styles where needed.
 3.9.  **PWA Setup**:
     *   Configure `vite-plugin-pwa` (if using Vite) or manually setup service worker and `manifest.json`.
@@ -160,10 +164,34 @@
 5.2.  **Manual Testing**: Thoroughly test all features, PWA offline mode, responsiveness (desktop/mobile).
 5.3.  **Debugging**: Address issues found during testing.
 
-## 8. Future Features / Improvements (Optional - V2+)
-*   Password Reset Flow.
+## 8. Future Features / Improvements (V2+)
+*   Password Reset Flow
+*   Mind Mapping Feature:
+    *   Integration with react-flow for visualization
+    *   Support for markdown in nodes
+    *   Multiple layout options (tree, force-directed)
+    *   JSON-based data structure for mind map storage
+    *   Bidirectional conversion between text and mind map views
+    *   Export/import functionality
+*   GeekSuite Integration Features:
+    *   Shared authentication system across GeekSuite apps
+    *   Unified dashboard for all GeekSuite apps
+    *   Cross-app data linking (e.g., linking notes to fitness logs)
+    *   Consistent theme and UI patterns across suite
 
----
+## Implementation Progress
+*   **Completed**:
+    *   Basic note CRUD operations
+    *   Tag system with snake_case formatting
+    *   Note editing with save/delete functionality
+    *   Basic layout and navigation
+*   **In Progress**:
+    *   Core feature implementation
+    *   UI alignment with FitnessGeek
+*   **Next Steps**:
+    *   Complete remaining core features
+    *   Implement mind mapping
+    *   Set up backup system
 
 ## Summary of Decisions Made (All major planning points addressed)
 
@@ -172,6 +200,9 @@
 *   **Dev Server**: Use `nodemon` for backend dev.
 *   **Folder Deletion**: Prompt user on frontend to choose between cascade-delete notes or unassigning `folderId`.
 *   **State Management**: Use `Zustand` primarily, potentially with Context API for simple static state.
-*   **Frontend Styling**: Use `Mantine UI` component library, supplement with SASS.
+*   **Frontend Styling**: Use `Material-UI (MUI)` component library, supplement with SASS.
+*   **GeekSuite Standard**: All GeekSuite apps will use Material-UI for consistent look and feel.
+*   **Tag Format**: Using snake_case for tag formatting
+*   **UI Reference**: Using FitnessGeek as reference for styling and UX patterns
 
 Ready to start building!

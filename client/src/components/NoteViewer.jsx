@@ -1,12 +1,23 @@
 import React from 'react';
 import ReactMarkdown from 'react-markdown';
-import { Paper, Title, Text, Alert, Group, ActionIcon, Tooltip } from '@mantine/core';
+import {
+    Paper,
+    Typography,
+    Alert,
+    Box,
+    IconButton,
+    Tooltip,
+    Button,
+    Chip,
+    Stack
+} from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import useNoteStore from '../store/noteStore';
-// import { IconPencil, IconTrash, IconLock, IconLockOpen } from '@tabler/icons-react';
+import LockIcon from '@mui/icons-material/Lock';
+import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
 
 function NoteViewer() {
-    // Select state primitives individually
     const selectedNote = useNoteStore((state) => state.selectedNote);
     const isLoadingSelected = useNoteStore((state) => state.isLoadingSelected);
     const selectedError = useNoteStore((state) => state.selectedError);
@@ -15,78 +26,122 @@ function NoteViewer() {
     const navigate = useNavigate();
 
     const handleEdit = () => {
-        navigate(`/notes/${selectedNote._id}/edit`); // Navigate to edit route
+        navigate(`/notes/${selectedNote._id}/edit`);
     };
 
     const handleDelete = async () => {
         if (window.confirm('Are you sure you want to delete this note?')) {
             const success = await deleteNote(selectedNote._id);
             if (success) {
-                navigate('/'); // Go back to list view on success
+                navigate('/');
             }
         }
     };
 
-    // TODO: Implement unlock functionality
     const handleUnlock = () => {
         alert('Unlock functionality not implemented yet.');
-    }
+    };
 
     if (isLoadingSelected) {
-        return <Text>Loading note...</Text>;
+        return <Typography>Loading note...</Typography>;
     }
 
-    // If there's an error (like note is locked)
-    if (selectedError && !selectedNote?.content) { // Check if content is missing due to lock/error
-         return (
-            <Alert color="orange" title="Note Unavailable">
-                {selectedError}
-                {selectedNote?.isLocked && (
-                   <Button ml="md" size="xs" onClick={handleUnlock}>Unlock</Button>
+    if (selectedError && !selectedNote?.content) {
+        return (
+            <Alert
+                severity="warning"
+                action={selectedNote?.isLocked && (
+                    <Button size="small" onClick={handleUnlock}>
+                        Unlock
+                    </Button>
                 )}
+            >
+                {selectedError}
             </Alert>
         );
     }
 
     if (!selectedNote) {
-        return <Text>Note not found or not selected.</Text>; // Should ideally not happen if routed correctly
+        return <Typography>Note not found or not selected.</Typography>;
     }
 
-    // Note content exists (not locked or successfully fetched)
     return (
-        <Paper shadow="xs" p="md" withBorder>
-            <Group justify="space-between" mb="md">
-                <Title order={2}>{selectedNote.title || 'Untitled Note'}</Title>
-                <Group>
+        <Paper elevation={1} sx={{ p: 3 }}>
+            <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+                <Typography variant="h5" component="h2">
+                    {selectedNote.title || 'Untitled Note'}
+                </Typography>
+                <Box>
                     {selectedNote.isLocked && (
-                         <Tooltip label="Unlock Note">
-                             <ActionIcon variant="default" onClick={handleUnlock} aria-label="Unlock">
-                                {/* <IconLock size={16} /> */} L
-                             </ActionIcon>
-                         </Tooltip>
-                    )}
-                    {!selectedNote.isLocked && !selectedNote.isEncrypted && (
-                         <Tooltip label="Edit Note">
-                            <ActionIcon variant="default" onClick={handleEdit} aria-label="Edit">
-                                {/* <IconPencil size={16} /> */} E
-                            </ActionIcon>
+                        <Tooltip title="Unlock Note">
+                            <IconButton onClick={handleUnlock} size="small">
+                                <LockIcon />
+                            </IconButton>
                         </Tooltip>
                     )}
                     {!selectedNote.isLocked && !selectedNote.isEncrypted && (
-                        <Tooltip label="Delete Note">
-                            <ActionIcon variant="filled" color="red" onClick={handleDelete} aria-label="Delete">
-                                {/* <IconTrash size={16} /> */} D
-                            </ActionIcon>
-                         </Tooltip>
+                        <Tooltip title="Edit Note">
+                            <IconButton onClick={handleEdit} size="small">
+                                <EditIcon />
+                            </IconButton>
+                        </Tooltip>
                     )}
-                </Group>
-            </Group>
-            <ReactMarkdown>{selectedNote.content || ''}</ReactMarkdown>
-            {/* Display tags, dates etc. if needed */}
-             <Text size="xs" c="dimmed" mt="lg">
-                 Created: {new Date(selectedNote.createdAt).toLocaleString()} |
-                 Updated: {new Date(selectedNote.updatedAt).toLocaleString()}
-             </Text>
+                    {!selectedNote.isLocked && !selectedNote.isEncrypted && (
+                        <Tooltip title="Delete Note">
+                            <IconButton
+                                onClick={handleDelete}
+                                size="small"
+                                color="error"
+                            >
+                                <DeleteIcon />
+                            </IconButton>
+                        </Tooltip>
+                    )}
+                </Box>
+            </Box>
+            <Box sx={{
+                '::selection': {
+                    backgroundColor: 'rgba(96, 152, 204, 0.2)',
+                    color: 'inherit'
+                },
+                '::-moz-selection': {
+                    backgroundColor: 'rgba(96, 152, 204, 0.2)',
+                    color: 'inherit'
+                }
+            }}>
+                <ReactMarkdown>{selectedNote.content || ''}</ReactMarkdown>
+            </Box>
+            {selectedNote.tags && selectedNote.tags.length > 0 && (
+                <Stack
+                    direction="row"
+                    spacing={1}
+                    sx={{
+                        mt: 2,
+                        mb: 1,
+                        flexWrap: 'wrap',
+                        gap: 1
+                    }}
+                >
+                    {selectedNote.tags.map((tag, index) => (
+                        <Chip
+                            key={index}
+                            label={tag}
+                            size="small"
+                            sx={{
+                                bgcolor: 'rgba(96, 152, 204, 0.1)',
+                                color: 'primary.main',
+                                '&:hover': {
+                                    bgcolor: 'rgba(96, 152, 204, 0.2)',
+                                },
+                            }}
+                        />
+                    ))}
+                </Stack>
+            )}
+            <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                Created: {new Date(selectedNote.createdAt).toLocaleString()} |
+                Updated: {new Date(selectedNote.updatedAt).toLocaleString()}
+            </Typography>
         </Paper>
     );
 }

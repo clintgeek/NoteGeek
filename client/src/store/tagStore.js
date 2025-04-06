@@ -12,14 +12,34 @@ const useTagStore = create((set, get) => ({
         set({ isLoading: true, error: null });
         try {
             const response = await getTagsApi();
-            set({ tags: response.data, isLoading: false }); // API returns sorted array of strings
+            console.log('Tags response:', response); // Add logging
+            if (response.data) {
+                set({ tags: response.data, isLoading: false }); // API returns sorted array of strings
+            } else {
+                throw new Error('No tags data received');
+            }
         } catch (error) {
-            const errorMessage = error.response?.data?.message || 'Failed to fetch tags';
+            console.error('Fetch tags error:', error); // Enhanced error logging
+            const errorMessage = error.response?.data?.message || error.message || 'Failed to fetch tags';
             set({ error: errorMessage, isLoading: false });
-            console.error('Fetch tags error:', errorMessage);
         }
     },
 
+    // Action to add a new tag to the local state
+    addTag: (newTag) => {
+        set((state) => {
+            // Only add if it's not already in the list
+            if (!state.tags.includes(newTag)) {
+                return { tags: [...state.tags, newTag].sort() };
+            }
+            return state;
+        });
+    },
+
+    // Clear tags (useful for logout)
+    clearTags: () => {
+        set({ tags: [], error: null });
+    },
 }));
 
 export default useTagStore;

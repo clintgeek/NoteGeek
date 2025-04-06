@@ -5,7 +5,6 @@ const NoteSchema = new mongoose.Schema(
     title: {
       type: String,
       trim: true,
-      // required: [true, 'Note title cannot be empty'], // Decided against making title required for flexibility
     },
     content: {
       type: String,
@@ -15,17 +14,25 @@ const NoteSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
       required: true,
-      index: true, // Index for efficient querying by user
-    },
-    folderId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Folder',
-      index: true, // Index for efficient querying by folder
-      default: null, // Allow notes to exist outside folders
+      index: true,
     },
     tags: {
       type: [String],
-      index: true, // Index for efficient querying by tags
+      index: true,
+      default: [],
+      validate: {
+        validator: function(tags) {
+          // Check for valid tag format and no duplicates
+          const tagSet = new Set(tags);
+          return tags.length === tagSet.size && // No duplicates
+                 tags.every(tag =>
+                   tag.length > 0 && // Not empty
+                   tag.length <= 100 && // Not too long
+                   /^[a-zA-Z0-9/_-]+$/.test(tag) // Only alphanumeric, underscore, hyphen, and forward slash
+                 );
+        },
+        message: 'Tags must be unique, non-empty, and contain only letters, numbers, underscores, hyphens, and forward slashes'
+      }
     },
     isLocked: {
       type: Boolean,
@@ -51,7 +58,23 @@ NoteSchema.index({ createdAt: 1 });
 NoteSchema.index({ updatedAt: 1 });
 
 // Add text index for search (as per plan section 2.9)
-NoteSchema.index({ title: 'text', content: 'text' });
+NoteSchema.index({ title: 'text', content: 'text', tags: 'text' });
+
+// Virtual for hierarchical tags
+NoteSchema.virtual('tagHierarchy').get(function() {
+  const hierarchy = {};
+  this.tags.forEach(tag => {
+    const parts = tag.split('/');
+    let current = hierarchy;
+    parts.forEach((part, index) => {
+      if (!current[part]) {
+        current[part] = index === parts.length - 1 ? null : {};
+      }
+      current = current[part];
+    });
+  });
+  return hierarchy;
+});
 
 const Note = mongoose.model('Note', NoteSchema);
 
