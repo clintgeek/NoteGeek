@@ -6,17 +6,12 @@ import useNoteStore from '../store/noteStore';
 // import { IconPencil, IconTrash, IconLock, IconLockOpen } from '@tabler/icons-react';
 
 function NoteViewer() {
-    const {
-        selectedNote,
-        isLoadingSelected,
-        selectedError,
-        deleteNote
-    } = useNoteStore((state) => ({
-        selectedNote: state.selectedNote,
-        isLoadingSelected: state.isLoadingSelected,
-        selectedError: state.selectedError,
-        deleteNote: state.deleteNote,
-    }));
+    // Select state primitives individually
+    const selectedNote = useNoteStore((state) => state.selectedNote);
+    const isLoadingSelected = useNoteStore((state) => state.isLoadingSelected);
+    const selectedError = useNoteStore((state) => state.selectedError);
+    const deleteNote = useNoteStore((state) => state.deleteNote);
+
     const navigate = useNavigate();
 
     const handleEdit = () => {
