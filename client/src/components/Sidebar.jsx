@@ -24,6 +24,7 @@ import {
 import useTagStore from '../store/tagStore';
 import useAuthStore from '../store/authStore';
 import useNoteStore from '../store/noteStore';
+import TagContextMenu from './TagContextMenu';
 
 function Sidebar({ closeNavbar }) {
     const location = useLocation();
@@ -76,22 +77,47 @@ function Sidebar({ closeNavbar }) {
 
     // Recursive component to render tag hierarchy
     const RenderTagHierarchy = ({ hierarchy, level = 0 }) => {
-        return Object.entries(hierarchy).map(([tag, data]) => (
-            <div key={data.path}>
-                <ListItemButton
-                    component={Link}
-                    to={`/tags/${encodeURIComponent(data.path)}`}
-                    selected={location.pathname === `/tags/${encodeURIComponent(data.path)}`}
-                    onClick={handleLinkClick}
-                    sx={{ pl: level * 2 + 2 }}
-                >
-                    <ListItemText primary={tag} />
-                </ListItemButton>
-                {Object.keys(data.children).length > 0 && (
-                    <RenderTagHierarchy hierarchy={data.children} level={level + 1} />
-                )}
-            </div>
-        ));
+        const [contextMenu, setContextMenu] = useState(null);
+        const [selectedTag, setSelectedTag] = useState(null);
+
+        const handleContextMenu = (event, tag) => {
+            event.preventDefault();
+            setContextMenu(event.currentTarget);
+            setSelectedTag(tag);
+        };
+
+        const handleCloseContextMenu = () => {
+            setContextMenu(null);
+            setSelectedTag(null);
+        };
+
+        return (
+            <>
+                {Object.entries(hierarchy).map(([tag, data]) => (
+                    <div key={data.path}>
+                        <ListItemButton
+                            component={Link}
+                            to={`/tags/${encodeURIComponent(data.path)}`}
+                            selected={location.pathname === `/tags/${encodeURIComponent(data.path)}`}
+                            onClick={handleLinkClick}
+                            onContextMenu={(e) => handleContextMenu(e, data.path)}
+                            sx={{ pl: level * 2 + 2 }}
+                        >
+                            <ListItemText primary={tag} />
+                        </ListItemButton>
+                        {Object.keys(data.children).length > 0 && (
+                            <RenderTagHierarchy hierarchy={data.children} level={level + 1} />
+                        )}
+                    </div>
+                ))}
+                <TagContextMenu
+                    anchorEl={contextMenu}
+                    open={Boolean(contextMenu)}
+                    onClose={handleCloseContextMenu}
+                    tag={selectedTag}
+                />
+            </>
+        );
     };
 
     // Filter tags based on search input

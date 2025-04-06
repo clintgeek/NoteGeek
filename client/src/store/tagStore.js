@@ -1,5 +1,9 @@
 import { create } from 'zustand';
-import { getTagsApi } from '../services/api';
+import {
+    getTagsApi,
+    renameTagApi,
+    deleteTagApi,
+} from '../services/api';
 
 const useTagStore = create((set, get) => ({
     tags: [],
@@ -40,6 +44,48 @@ const useTagStore = create((set, get) => ({
     clearTags: () => {
         set({ tags: [], error: null });
     },
+
+    renameTag: async (oldTag, newTag) => {
+        set({ isLoading: true, error: null });
+        try {
+            await renameTagApi(oldTag, newTag);
+            // Update local state
+            const tags = get().tags;
+            const updatedTags = tags.map(tag =>
+                tag === oldTag ? newTag :
+                tag.startsWith(oldTag + '/') ? newTag + tag.substring(oldTag.length) :
+                tag
+            );
+            set({ tags: updatedTags, isLoading: false });
+        } catch (error) {
+            console.error('Rename tag error:', error);
+            set({
+                error: error.message || 'Failed to rename tag',
+                isLoading: false
+            });
+            throw error;
+        }
+    },
+
+    deleteTag: async (tag) => {
+        set({ isLoading: true, error: null });
+        try {
+            await deleteTagApi(tag);
+            // Update local state
+            const tags = get().tags;
+            const updatedTags = tags.filter(t =>
+                t !== tag && !t.startsWith(tag + '/')
+            );
+            set({ tags: updatedTags, isLoading: false });
+        } catch (error) {
+            console.error('Delete tag error:', error);
+            set({
+                error: error.message || 'Failed to delete tag',
+                isLoading: false
+            });
+            throw error;
+        }
+    }
 }));
 
 export default useTagStore;

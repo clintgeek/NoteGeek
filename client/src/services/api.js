@@ -74,6 +74,27 @@ export const searchNotesApi = async (query) => {
     }
 };
 
+// Tag Management
+export const renameTagApi = async (oldTag, newTag) => {
+    try {
+        const response = await apiClient.put('/tags/rename', { oldTag, newTag });
+        return response;
+    } catch (error) {
+        console.error('API Rename Tag Error:', error);
+        throw error;
+    }
+};
+
+export const deleteTagApi = async (tag) => {
+    try {
+        const response = await apiClient.delete(`/tags/${encodeURIComponent(tag)}`);
+        return response;
+    } catch (error) {
+        console.error('API Delete Tag Error:', error);
+        throw error;
+    }
+};
+
 // Export the utility functions
 export const getToken = () => localStorage.getItem('token');
 export const setToken = (token) => {
