@@ -27,7 +27,7 @@ function Sidebar({ closeNavbar }) {
     const location = useLocation();
     const navigate = useNavigate();
     const { tags, fetchTags, isLoading: tagsLoading, error: tagsError } = useTagStore();
-    const { logoutUser, user } = useAuthStore();
+    const { logout, user } = useAuthStore();
     const { clearNotes } = useNoteStore();
     const [tagsOpen, setTagsOpen] = useState(true);
 
@@ -46,7 +46,7 @@ function Sidebar({ closeNavbar }) {
 
     const handleLogout = () => {
         handleLinkClick();
-        logoutUser();
+        logout();
         clearNotes();
         navigate('/login');
     };
@@ -81,7 +81,7 @@ function Sidebar({ closeNavbar }) {
                     to={`/tags/${encodeURIComponent(data.path)}`}
                     selected={location.pathname === `/tags/${encodeURIComponent(data.path)}`}
                     onClick={handleLinkClick}
-                    sx={{ pl: level * 3 + 2 }}
+                    sx={{ pl: level * 2 + 2 }}
                 >
                     <ListItemText primary={tag} />
                 </ListItemButton>

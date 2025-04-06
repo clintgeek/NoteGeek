@@ -14,7 +14,7 @@ import MenuIcon from '@mui/icons-material/Menu';
 import Sidebar from './Sidebar';
 import AutoStoriesOutlinedIcon from '@mui/icons-material/AutoStoriesOutlined';
 
-const DRAWER_WIDTH = 240;
+const DRAWER_WIDTH = 220;
 
 function Layout({ children }) {
     const theme = useTheme();
@@ -43,13 +43,13 @@ function Layout({ children }) {
                     color: 'primary.contrastText',
                 }}
             >
-                <Toolbar sx={{ px: { xs: 2, sm: 3 } }}>
+                <Toolbar sx={{ px: { xs: 1, sm: 2 } }}>
                     <IconButton
                         color="inherit"
                         aria-label="open drawer"
                         edge="start"
                         onClick={handleDrawerToggle}
-                        sx={{ mr: 2 }}
+                        sx={{ mr: 1 }}
                     >
                         <MenuIcon />
                     </IconButton>
@@ -140,8 +140,8 @@ function Layout({ children }) {
                         flexGrow: 1,
                         minHeight: '100vh',
                         bgcolor: 'background.default',
-                        pt: { xs: 2, sm: 3 },
-                        pb: { xs: 2, sm: 3 },
+                        pt: { xs: 1, sm: 2 },
+                        pb: { xs: 1, sm: 2 },
                         ml: { sm: desktopOpen ? 0 : `-${DRAWER_WIDTH}px` },
                         transition: theme.transitions.create('margin', {
                             easing: theme.transitions.easing.sharp,
@@ -149,7 +149,7 @@ function Layout({ children }) {
                         }),
                     }}
                 >
-                    <Container maxWidth="lg" sx={{ px: { xs: 2, sm: 3 } }}>
+                    <Container maxWidth="lg" sx={{ px: { xs: 1, sm: 2 } }}>
                         {children}
                     </Container>
                 </Box>
