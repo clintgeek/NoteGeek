@@ -71,18 +71,30 @@ export const registerUser = async (req, res) => {
 export const loginUser = async (req, res) => {
   const { email, password } = req.body;
 
+  console.log('Login attempt for email:', email);
+  console.log('Request body:', req.body);
+
   // Basic validation
   if (!email || !password) {
+    console.log('Missing email or password');
     return res.status(400).json({ message: 'Please provide email and password' });
   }
 
   try {
     // Check for user by email
     const user = await User.findOne({ email });
+    console.log('User found:', user ? 'Yes' : 'No');
+
+    if (user) {
+      console.log('Comparing password...');
+      const isMatch = await bcrypt.compare(password, user.passwordHash);
+      console.log('Password match:', isMatch);
+    }
 
     // Check if user exists and if password matches
     if (user && (await bcrypt.compare(password, user.passwordHash))) {
       // User authenticated
+      console.log('Login successful for user:', user.email);
       res.json({
         _id: user._id,
         email: user.email,
@@ -91,6 +103,7 @@ export const loginUser = async (req, res) => {
       });
     } else {
       // Authentication failed
+      console.log('Authentication failed - invalid email or password');
       res.status(401).json({ message: 'Invalid email or password' }); // Use 401 Unauthorized
     }
   } catch (error) {
