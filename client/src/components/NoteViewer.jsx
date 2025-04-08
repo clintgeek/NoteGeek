@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import {
     Paper,
@@ -18,20 +18,46 @@ import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 
 function NoteViewer() {
-    const selectedNote = useNoteStore((state) => state.selectedNote);
-    const isLoadingSelected = useNoteStore((state) => state.isLoadingSelected);
-    const selectedError = useNoteStore((state) => state.selectedError);
-    const deleteNote = useNoteStore((state) => state.deleteNote);
+    const {
+        selectedNote,
+        pendingNote,
+        isLoadingSelected,
+        selectedError,
+        deleteNote
+    } = useNoteStore();
+
+    // Use pendingNote as a fallback when selectedNote is not available
+    const noteToView = selectedNote || pendingNote;
+
+    // Add debugging for note view
+    useEffect(() => {
+        if (noteToView) {
+            console.log('NoteViewer - Viewing note:', {
+                id: noteToView._id,
+                title: noteToView.title,
+                type: noteToView.type,
+                contentLength: noteToView.content ? noteToView.content.length : 0
+            });
+
+            if (noteToView.type === 'text') {
+                console.log('NoteViewer - Rich text content:', noteToView.content);
+            }
+        }
+    }, [noteToView]);
 
     const navigate = useNavigate();
 
     const handleEdit = () => {
-        navigate(`/notes/${selectedNote._id}/edit`);
+        if (noteToView) {
+            navigate(`/notes/${noteToView._id}/edit`);
+        }
     };
 
     const handleDelete = async () => {
+        if (!noteToView) return;
+
         if (window.confirm('Are you sure you want to delete this note?')) {
-            const success = await deleteNote(selectedNote._id);
+            const success = await deleteNote(noteToView._id);
             if (success) {
                 navigate('/');
             }
@@ -46,11 +72,11 @@ function NoteViewer() {
         return <Typography>Loading note...</Typography>;
     }
 
-    if (selectedError && !selectedNote?.content) {
+    if (selectedError && !noteToView?.content) {
         return (
             <Alert
                 severity="warning"
-                action={selectedNote?.isLocked && (
+                action={noteToView?.isLocked && (
                     <Button size="small" onClick={handleUnlock}>
                         Unlock
                     </Button>
@@ -61,87 +87,103 @@ function NoteViewer() {
         );
     }
 
-    if (!selectedNote) {
+    if (!noteToView) {
         return <Typography>Note not found or not selected.</Typography>;
     }
 
     return (
-        <Paper elevation={1} sx={{ p: 3 }}>
-            <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-                <Typography variant="h5" component="h2">
-                    {selectedNote.title || 'Untitled Note'}
+        <Paper
+            elevation={0}
+            sx={{
+                p: 3,
+                maxWidth: '100%',
+                overflow: 'hidden',
+                borderRadius: 0
+            }}
+        >
+            <Box
+                sx={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    mb: 2,
+                    flexWrap: 'wrap',
+                    gap: 1
+                }}
+            >
+                <Typography variant="h4" component="h1">
+                    {noteToView.title || 'Untitled Note'}
+                    {noteToView.isLocked && (
+                        <LockIcon color="warning" sx={{ ml: 1, verticalAlign: 'middle' }} />
+                    )}
                 </Typography>
+
                 <Box>
-                    {selectedNote.isLocked && (
-                        <Tooltip title="Unlock Note">
-                            <IconButton onClick={handleUnlock} size="small">
-                                <LockIcon />
-                            </IconButton>
-                        </Tooltip>
-                    )}
-                    {!selectedNote.isLocked && !selectedNote.isEncrypted && (
-                        <Tooltip title="Edit Note">
-                            <IconButton onClick={handleEdit} size="small">
-                                <EditIcon />
-                            </IconButton>
-                        </Tooltip>
-                    )}
-                    {!selectedNote.isLocked && !selectedNote.isEncrypted && (
-                        <Tooltip title="Delete Note">
-                            <IconButton
-                                onClick={handleDelete}
-                                size="small"
-                                color="error"
-                            >
-                                <DeleteIcon />
-                            </IconButton>
-                        </Tooltip>
-                    )}
+                    <Tooltip title="Edit">
+                        <IconButton onClick={handleEdit} color="primary">
+                            <EditIcon />
+                        </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Delete">
+                        <IconButton onClick={handleDelete} color="error">
+                            <DeleteIcon />
+                        </IconButton>
+                    </Tooltip>
                 </Box>
             </Box>
-            <Box sx={{
-                '::selection': {
-                    backgroundColor: 'rgba(96, 152, 204, 0.2)',
-                    color: 'inherit'
-                },
-                '::-moz-selection': {
-                    backgroundColor: 'rgba(96, 152, 204, 0.2)',
-                    color: 'inherit'
-                }
-            }}>
-                <ReactMarkdown>{selectedNote.content || ''}</ReactMarkdown>
-            </Box>
-            {selectedNote.tags && selectedNote.tags.length > 0 && (
-                <Stack
-                    direction="row"
-                    spacing={1}
-                    sx={{
-                        mt: 2,
-                        mb: 1,
-                        flexWrap: 'wrap',
-                        gap: 1
-                    }}
-                >
-                    {selectedNote.tags.map((tag, index) => (
-                        <Chip
-                            key={index}
-                            label={tag}
-                            size="small"
-                            sx={{
-                                bgcolor: 'rgba(96, 152, 204, 0.1)',
-                                color: 'primary.main',
-                                '&:hover': {
-                                    bgcolor: 'rgba(96, 152, 204, 0.2)',
-                                },
-                            }}
-                        />
+
+            {noteToView.tags && noteToView.tags.length > 0 && (
+                <Stack direction="row" spacing={1} sx={{ mb: 3 }}>
+                    {noteToView.tags.map(tag => (
+                        <Chip key={tag} label={tag} size="small" />
                     ))}
                 </Stack>
             )}
-            <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                Created: {new Date(selectedNote.createdAt).toLocaleString()} |
-                Updated: {new Date(selectedNote.updatedAt).toLocaleString()}
-            </Typography>
+
+            <Box
+                sx={{
+                    mt: 2,
+                    overflow: 'auto',
+                    maxHeight: 'calc(100vh - 250px)',
+                    wordBreak: 'break-word'
+                }}
+            >
+                {/* Explicit check for each note type */}
+                {noteToView.type === 'markdown' ? (
+                    <ReactMarkdown>{noteToView.content || ''}</ReactMarkdown>
+                ) : noteToView.type === 'text' ? (
+                    // Handle rich text content (which is now stored as HTML)
+                    <div
+                        className="rich-text-viewer"
+                        dangerouslySetInnerHTML={{ __html: noteToView.content || '' }}
+                    />
+                ) : noteToView.type === 'code' ? (
+                    // Dedicated code rendering with monospace font
+                    <Typography
+                        component="pre"
+                        sx={{
+                            fontFamily: '"Roboto Mono", monospace',
+                            whiteSpace: 'pre-wrap',
+                            margin: 0,
+                            padding: 2,
+                            backgroundColor: '#f5f5f5',
+                            borderRadius: 1
+                        }}
+                    >
+                        {noteToView.content || ''}
+                    </Typography>
+                ) : (
+                    // Default fallback for any other type
+                    <Typography
+                        component="pre"
+                        sx={{
+                            whiteSpace: 'pre-wrap',
+                            margin: 0
+                        }}
+                    >
+                        {noteToView.content || ''}
+                    </Typography>
+                )}
+            </Box>
         </Paper>
     );
 }

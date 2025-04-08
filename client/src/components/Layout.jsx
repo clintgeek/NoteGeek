@@ -41,6 +41,7 @@ function Layout({ children }) {
                     zIndex: theme.zIndex.drawer + 1,
                     bgcolor: 'primary.main',
                     color: 'primary.contrastText',
+                    flexDirection: 'row',
                 }}
             >
                 <Toolbar sx={{ px: { xs: 1, sm: 2 } }}>
@@ -140,13 +141,18 @@ function Layout({ children }) {
                         flexGrow: 1,
                         minHeight: '100vh',
                         bgcolor: 'background.default',
-                        pt: { xs: 1, sm: 2 },
-                        pb: { xs: 1, sm: 2 },
+                        pt: { xs: 1, sm: 1 },
+                        pb: { xs: 1, sm: 1 },
                         ml: { sm: desktopOpen ? 0 : `-${DRAWER_WIDTH}px` },
                         transition: theme.transitions.create('margin', {
                             easing: theme.transitions.easing.sharp,
                             duration: theme.transitions.duration.leavingScreen,
                         }),
+                        '&.mindmap-container': {
+                            overflow: 'hidden',
+                            pt: 0,
+                            pb: 0
+                        }
                     }}
                 >
                     <Container maxWidth="lg" sx={{ px: { xs: 1, sm: 2 } }}>

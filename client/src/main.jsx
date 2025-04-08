@@ -1,6 +1,9 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 
+// Import ReactFlow styles
+import 'reactflow/dist/style.css';
+
 // Import custom SASS styles
 import './styles/main.scss';
 

@@ -18,6 +18,7 @@ export const createNote = async (req, res) => {
     title,
     content,
     tags,
+    type,
     isLocked,
     isEncrypted,
     lockPassword,
@@ -32,6 +33,12 @@ export const createNote = async (req, res) => {
   // Validate tags if provided
   if (tags && !Array.isArray(tags)) {
     return res.status(400).json({ message: 'Tags must be an array' });
+  }
+
+  // Validate type if provided
+  const validTypes = ['text', 'markdown', 'code', 'mindmap'];
+  if (type && !validTypes.includes(type)) {
+    return res.status(400).json({ message: 'Invalid note type. Must be one of: text, markdown, code, mindmap' });
   }
 
   // Handle lock password if note is to be locked
@@ -54,6 +61,7 @@ export const createNote = async (req, res) => {
       userId,
       title: title || 'Untitled Note',
       content,
+      type: type || 'text', // Default to text if not provided
       tags: tags || [],
       isLocked: isLocked || false,
       isEncrypted: isEncrypted || false,
@@ -143,10 +151,16 @@ export const getNoteById = async (req, res) => {
 export const updateNote = async (req, res) => {
   const userId = req.user._id;
   const noteId = req.params.id;
-  const { title, content, tags } = req.body;
+  const { title, content, tags, type } = req.body;
 
   if (!isValidObjectId(noteId)) {
     return res.status(400).json({ message: 'Invalid Note ID format' });
+  }
+
+  // Validate type if provided
+  const validTypes = ['text', 'markdown', 'code', 'mindmap'];
+  if (type && !validTypes.includes(type)) {
+    return res.status(400).json({ message: 'Invalid note type. Must be one of: text, markdown, code, mindmap' });
   }
 
   try {
@@ -167,6 +181,7 @@ export const updateNote = async (req, res) => {
     if (title !== undefined) note.title = title;
     if (content !== undefined) note.content = content;
     if (tags !== undefined) note.tags = tags;
+    if (type !== undefined) note.type = type;
 
     const updatedNote = await note.save();
     res.status(200).json(updatedNote);

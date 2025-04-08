@@ -6,10 +6,12 @@ import {
     CssBaseline,
     Breadcrumbs as MUIBreadcrumbs,
     Link as MUILink,
-    Typography
+    Typography,
+    GlobalStyles
 } from '@mui/material';
 import Layout from './components/Layout';
 import useAuthStore from './store/authStore';
+import useNoteStore from './store/noteStore';
 import './App.css';
 
 // Import actual page components
@@ -137,6 +139,19 @@ const theme = createTheme({
     },
 });
 
+// Global styles to override Material UI defaults
+const globalStyles = (
+  <GlobalStyles
+    styles={{
+      // Fix for the problematic minHeight on editor elements
+      '.MuiInputBase-root, .MuiOutlinedInput-root, .css-y0i7t3, [class*="css-"]': {
+        minHeight: 'auto !important'
+      },
+      // Add more global styles as needed
+    }}
+  />
+);
+
 // Tag Notes List Component
 const TagNotesList = () => {
     const { tag } = useParams();
@@ -181,13 +196,25 @@ const TagNotesList = () => {
     );
 };
 
+// NewNoteWrapper component to clear state before showing editor
+function NewNoteWrapper() {
+    const { clearSelectedNote } = useNoteStore();
+
+    // Clear any selected note when mounting this component
+    useEffect(() => {
+        clearSelectedNote();
+    }, [clearSelectedNote]);
+
+    return <NoteEditor />;
+}
+
 // Main App Component
 function MainApp() {
     return (
         <Layout>
             <Routes>
                 <Route path="/" element={<NoteList />} />
-                <Route path="/notes/new" element={<NoteEditor />} />
+                <Route path="/notes/new" element={<NewNoteWrapper />} />
                 <Route path="/notes/:id" element={<NotePage />} />
                 <Route path="/notes/:id/edit" element={<NotePage />} />
                 <Route path="/import" element={<ImportNotes />} />
@@ -205,6 +232,19 @@ function App() {
 
     useEffect(() => {
         hydrateUser();
+
+        // Add style to prevent scrolling on mind map pages
+        const style = document.createElement('style');
+        style.textContent = `
+            body.mindmap-view {
+                overflow: hidden;
+            }
+        `;
+        document.head.appendChild(style);
+
+        return () => {
+            document.head.removeChild(style);
+        };
     }, [hydrateUser]);
 
     const { isAuthenticated } = useAuthStore();
@@ -212,6 +252,7 @@ function App() {
     return (
         <ThemeProvider theme={theme}>
             <CssBaseline />
+            {globalStyles}
             <Router>
                 <Routes>
                     <Route path="/login" element={!isAuthenticated ? <Login /> : <Navigate to="/" />} />
