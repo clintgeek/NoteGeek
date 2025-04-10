@@ -87,26 +87,23 @@ function NoteEditor() {
         // Reset initialLoadDone when component mounts
         initialLoadDone.current = false;
 
-        // New notes need a reset
-        if (id === 'new' && !savedNoteId) {
-            console.log("NoteEditor - New note, resetting form");
+        // Always reset form for new notes
+        if (id === 'new') {
             resetForm();
             setIsEditMode(true);
+            setSavedNoteId(null); // Ensure we clear any previous saved note ID
             initialLoadDone.current = true;
+            return;
         }
-        // Existing notes should load from store
-        else if (noteToEdit) {
-            console.log("NoteEditor - Loading from store:", noteToEdit._id);
-            console.log("NoteEditor - Note type from store:", noteToEdit.type);
-            console.log("NoteEditor - Note content:", noteToEdit.content);
 
+        // Existing notes should load from store
+        if (noteToEdit) {
             setTitle(noteToEdit.title || '');
             setContent(noteToEdit.content || '');
             setSelectedTags(noteToEdit.tags || []);
 
             // Set the correct note type from the stored note
             if (noteToEdit.type && Object.values(NOTE_TYPES).includes(noteToEdit.type)) {
-                console.log("NoteEditor - Setting type to:", noteToEdit.type);
                 setNoteType(noteToEdit.type);
 
                 // Only set view mode for existing mind maps
@@ -114,7 +111,6 @@ function NoteEditor() {
                     setIsEditMode(false);
                 }
             } else {
-                console.log("NoteEditor - Invalid or missing type, defaulting to:", NOTE_TYPES.TEXT);
                 setNoteType(NOTE_TYPES.TEXT); // Default to text if no valid type
             }
 
@@ -124,8 +120,12 @@ function NoteEditor() {
         // Cleanup on unmount
         return () => {
             initialLoadDone.current = false;
+            if (id === 'new') {
+                resetForm();
+                setSavedNoteId(null);
+            }
         };
-    }, [id, noteToEdit, resetForm, savedNoteId]);
+    }, [id, noteToEdit, resetForm]); // Remove savedNoteId from dependencies
 
     // Toggle edit mode
     const toggleEditMode = () => {
@@ -137,7 +137,6 @@ function NoteEditor() {
         try {
             // Always require content
             if (!content.trim()) {
-                console.log("Not saving note without content");
                 setSaveStatus('Error: Note content cannot be empty');
                 setTimeout(() => setSaveStatus(''), 2000);
                 return null;
@@ -145,35 +144,23 @@ function NoteEditor() {
 
             setSaveStatus('Saving...');
 
-            // Ensure type is explicitly set
-            console.log("Saving note with type:", noteType);
-
             const noteData = {
                 title: title.trim() || 'Untitled Note',
                 content,
                 tags: selectedTags,
-                type: noteType // Make sure type is included
+                type: noteType
             };
-
-            console.log("Full note data being saved:", JSON.stringify({
-                ...noteData,
-                content: noteData.content.length > 50 ? noteData.content.substring(0, 50) + '...' : noteData.content
-            }));
 
             let savedNote;
 
             // If we already have a saved ID, update that note
             if (savedNoteId) {
-                console.log(`Updating existing note: ${savedNoteId}`);
                 savedNote = await updateNote(savedNoteId, noteData);
             }
             // Otherwise create a new note
             else {
-                console.log("Creating new note");
                 savedNote = await createNote(noteData);
                 if (savedNote && savedNote._id) {
-                    console.log(`Note created with ID: ${savedNote._id}`);
-                    console.log("Saved note type:", savedNote.type);
                     // Remember this ID for future saves
                     setSavedNoteId(savedNote._id);
                     // Navigate to the new note's URL
@@ -194,13 +181,18 @@ function NoteEditor() {
                 if (isMindMap && id !== 'new') {
                     setIsEditMode(false);
                 }
+
+                // If we're on the new note page and just saved, navigate to new note
+                // Let the NewNoteWrapper handle the state reset
+                if (id === 'new') {
+                    navigate('/notes/new');
+                }
             } else {
                 setSaveStatus('Failed to save');
             }
 
             return savedNote;
         } catch (error) {
-            console.error('Error saving note:', error);
             setSaveStatus('Error: ' + (error.message || 'Failed to save'));
             return null;
         }

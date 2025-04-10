@@ -157,13 +157,16 @@ const globalStyles = (
 // NewNoteWrapper component to clear state before showing editor
 function NewNoteWrapper() {
     const { clearSelectedNote } = useNoteStore();
+    const [key, setKey] = useState(0);
 
     // Clear any selected note when mounting this component
     useEffect(() => {
         clearSelectedNote();
+        // Force a remount of NoteEditor by changing its key
+        setKey(prev => prev + 1);
     }, [clearSelectedNote]);
 
-    return <NoteEditor />;
+    return <NoteEditor key={key} />;
 }
 
 // Main App Component
