@@ -1,9 +1,7 @@
 import axios from 'axios';
 
 // Define the base URL for the API
-const API_BASE_URL = import.meta.env.DEV
-    ? 'http://localhost:5001/api'  // Development
-    : '/api';                      // Production
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 // Create an axios instance
 const apiClient = axios.create({
