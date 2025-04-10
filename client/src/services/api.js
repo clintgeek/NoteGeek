@@ -6,10 +6,15 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 // Create an axios instance
 const apiClient = axios.create({
     baseURL: API_BASE_URL,
-    withCredentials: true, // Required for cookies/session
+    withCredentials: true,
     headers: {
         'Content-Type': 'application/json',
-    }
+    },
+    // Ensure cookies are sent with cross-origin requests
+    xsrfCookieName: 'XSRF-TOKEN',
+    xsrfHeaderName: 'X-XSRF-TOKEN',
+    // Explicitly set credentials mode
+    credentials: 'include'
 });
 
 // Add request interceptor for auth token
@@ -30,12 +35,16 @@ apiClient.interceptors.request.use(
         console.log('API Request - URL:', config.url);
         console.log('API Request - Method:', config.method);
         console.log('API Request - Has Token:', !!token);
+        console.log('API Request - Headers:', config.headers);
 
         if (token) {
             config.headers['Authorization'] = `Bearer ${token}`;
         } else {
             console.warn('API Request - No auth token found');
         }
+
+        // Ensure CORS headers are properly set
+        config.headers['Access-Control-Allow-Credentials'] = true;
         return config;
     },
     (error) => {
@@ -49,6 +58,7 @@ apiClient.interceptors.response.use(
     (response) => {
         console.log('API Response - Status:', response.status);
         console.log('API Response - URL:', response.config.url);
+        console.log('API Response - Headers:', response.headers);
         return response;
     },
     (error) => {
@@ -57,7 +67,8 @@ apiClient.interceptors.response.use(
                 status: error.response.status,
                 url: error.config?.url,
                 message: error.response.data?.message || error.message,
-                data: error.response.data
+                data: error.response.data,
+                headers: error.response.headers
             });
 
             // Handle 401 Unauthorized

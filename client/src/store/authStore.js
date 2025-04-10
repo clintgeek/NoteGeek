@@ -15,9 +15,14 @@ const useAuthStore = create(
             login: async (email, password) => {
                 try {
                     set({ isLoading: true, error: null });
-                    const response = await axios.post('http://localhost:5001/api/auth/login', {
+                    const response = await axios.post(import.meta.env.VITE_API_URL + '/auth/login', {
                         email,
                         password,
+                    }, {
+                        withCredentials: true,
+                        headers: {
+                            'Content-Type': 'application/json',
+                        }
                     });
 
                     const { token } = response.data;
@@ -44,6 +49,13 @@ const useAuthStore = create(
                         isLoading: false
                     };
                     set(newState);
+
+                    // Store token in localStorage as backup
+                    try {
+                        localStorage.setItem('auth_token', token);
+                    } catch (e) {
+                        console.warn('Failed to store token in localStorage:', e);
+                    }
 
                     // Fetch notes after successful login
                     const noteStore = useNoteStore.getState();
@@ -105,6 +117,7 @@ const useAuthStore = create(
             },
 
             logout: () => {
+                localStorage.removeItem('auth_token');
                 set({
                     token: null,
                     user: null,
@@ -119,7 +132,20 @@ const useAuthStore = create(
                     isAuthenticated: state.isAuthenticated
                 });
 
-                if (!state.token) {
+                // Try to get token from multiple sources
+                let token = state.token;
+                if (!token) {
+                    try {
+                        token = localStorage.getItem('auth_token');
+                        if (token) {
+                            console.log('Retrieved token from localStorage backup');
+                        }
+                    } catch (e) {
+                        console.warn('Failed to read token from localStorage:', e);
+                    }
+                }
+
+                if (!token) {
                     console.log('No token found during hydration');
                     set({
                         user: null,
@@ -131,7 +157,7 @@ const useAuthStore = create(
 
                 try {
                     const jwtDecode = (await import('jwt-decode')).jwtDecode;
-                    const decoded = jwtDecode(state.token);
+                    const decoded = jwtDecode(token);
                     const currentTime = Date.now() / 1000;
 
                     console.log('Token validation:', {
@@ -148,6 +174,7 @@ const useAuthStore = create(
                             isAuthenticated: false,
                             error: 'Session expired'
                         });
+                        localStorage.removeItem('auth_token');
                         return false;
                     }
 
@@ -157,6 +184,7 @@ const useAuthStore = create(
                     }
 
                     set({
+                        token,
                         user: {
                             id: decoded.id,
                             email: decoded.email
@@ -176,6 +204,7 @@ const useAuthStore = create(
                         isAuthenticated: false,
                         error: `Session validation failed: ${error.message}`
                     });
+                    localStorage.removeItem('auth_token');
                     return false;
                 }
             }
