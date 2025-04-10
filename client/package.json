@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "generate-pwa-assets": "node scripts/svg-to-png.js && node scripts/generate-pwa-assets.js"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
@@ -46,7 +47,8 @@
     "postcss": "^8.5.3",
     "postcss-preset-mantine": "^1.17.0",
     "postcss-simple-vars": "^7.0.1",
+    "sharp": "^0.34.1",
     "vite": "^6.2.6",
-    "vite-plugin-commonjs": "^0.10.4"
+    "vite-plugin-pwa": "^1.0.0"
   }
 }
