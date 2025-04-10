@@ -14,16 +14,24 @@ const useAuthStore = create(
 
             login: async (email, password) => {
                 try {
+                    set({ isLoading: true, error: null });
                     const response = await axios.post('http://localhost:5001/api/auth/login', {
                         email,
                         password,
                     });
 
                     const { token } = response.data;
+                    if (!token) {
+                        throw new Error('No token received from server');
+                    }
 
                     // Dynamic import with proper await
                     const jwtDecode = (await import('jwt-decode')).jwtDecode;
                     const decoded = jwtDecode(token);
+
+                    if (!decoded || !decoded.id || !decoded.email) {
+                        throw new Error('Invalid token structure');
+                    }
 
                     const newState = {
                         token,
@@ -32,6 +40,8 @@ const useAuthStore = create(
                             email: decoded.email
                         },
                         isAuthenticated: true,
+                        error: null,
+                        isLoading: false
                     };
                     set(newState);
 
@@ -41,10 +51,22 @@ const useAuthStore = create(
 
                     return { success: true };
                 } catch (error) {
-                    console.error('Authentication failed:', error.response?.data?.message || error.message);
+                    const errorMessage = error.response?.data?.message || error.message || 'Login failed';
+                    console.error('Authentication failed:', {
+                        message: errorMessage,
+                        status: error.response?.status,
+                        data: error.response?.data
+                    });
+                    set({
+                        error: errorMessage,
+                        isLoading: false,
+                        isAuthenticated: false,
+                        token: null,
+                        user: null
+                    });
                     return {
                         success: false,
-                        error: error.response?.data?.message || 'Login failed',
+                        error: errorMessage
                     };
                 }
             },
@@ -91,46 +113,83 @@ const useAuthStore = create(
             },
 
             hydrateUser: async () => {
-                const { token } = get();
-                if (token) {
-                    try {
-                        const jwtDecode = (await import('jwt-decode')).jwtDecode;
-                        const decoded = jwtDecode(token);
-                        const currentTime = Date.now() / 1000;
+                const state = get();
+                console.log('Hydrating user. Current state:', {
+                    hasToken: !!state.token,
+                    isAuthenticated: state.isAuthenticated
+                });
 
-                        if (decoded.exp < currentTime) {
-                            console.log('Session expired - logging out');
-                            set({
-                                token: null,
-                                user: null,
-                                isAuthenticated: false,
-                            });
-                            return false;
-                        }
+                if (!state.token) {
+                    console.log('No token found during hydration');
+                    set({
+                        user: null,
+                        isAuthenticated: false,
+                        error: 'No authentication token found'
+                    });
+                    return false;
+                }
 
-                        set({
-                            user: {
-                                id: decoded.id,
-                                email: decoded.email
-                            },
-                            isAuthenticated: true,
-                        });
-                        return true;
-                    } catch (error) {
-                        console.error('Session validation failed:', error.message);
+                try {
+                    const jwtDecode = (await import('jwt-decode')).jwtDecode;
+                    const decoded = jwtDecode(state.token);
+                    const currentTime = Date.now() / 1000;
+
+                    console.log('Token validation:', {
+                        expiresAt: new Date(decoded.exp * 1000).toISOString(),
+                        currentTime: new Date(currentTime * 1000).toISOString(),
+                        isExpired: decoded.exp < currentTime
+                    });
+
+                    if (decoded.exp < currentTime) {
+                        console.log('Token expired - logging out');
                         set({
                             token: null,
                             user: null,
                             isAuthenticated: false,
+                            error: 'Session expired'
                         });
                         return false;
                     }
+
+                    // Verify token structure
+                    if (!decoded.id || !decoded.email) {
+                        throw new Error('Invalid token structure');
+                    }
+
+                    set({
+                        user: {
+                            id: decoded.id,
+                            email: decoded.email
+                        },
+                        isAuthenticated: true,
+                        error: null
+                    });
+                    return true;
+                } catch (error) {
+                    console.error('Session validation failed:', {
+                        error: error.message,
+                        stack: error.stack
+                    });
+                    set({
+                        token: null,
+                        user: null,
+                        isAuthenticated: false,
+                        error: `Session validation failed: ${error.message}`
+                    });
+                    return false;
                 }
-                return false;
             }
         }),
         {
             name: 'auth-storage',
+            partialize: (state) => ({
+                token: state.token,
+                // Don't persist these states
+                isAuthenticated: false,
+                user: null,
+                error: null,
+                isLoading: false
+            })
         }
     )
 );

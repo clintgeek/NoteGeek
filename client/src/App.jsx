@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 // Use `useParams` for route parameters
-import { BrowserRouter as Router, Routes, Route, Navigate, Link, Outlet } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, Link, Outlet, useLocation } from 'react-router-dom';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import {
     CssBaseline,
@@ -169,6 +169,31 @@ function NewNoteWrapper() {
     return <NoteEditor key={key} />;
 }
 
+// Create a wrapper component for handling auth redirects
+const AuthRedirect = ({ children }) => {
+    const { isAuthenticated } = useAuthStore();
+    const location = useLocation();
+    const [shouldRedirect, setShouldRedirect] = useState(false);
+
+    useEffect(() => {
+        // Only set redirect after a delay if still not authenticated
+        if (!isAuthenticated && location.pathname !== '/login' && location.pathname !== '/register') {
+            const timer = setTimeout(() => {
+                setShouldRedirect(true);
+            }, 1000); // 1 second delay
+            return () => clearTimeout(timer);
+        } else {
+            setShouldRedirect(false);
+        }
+    }, [isAuthenticated, location.pathname]);
+
+    if (!isAuthenticated && shouldRedirect) {
+        return <Navigate to="/login" state={{ from: location }} replace />;
+    }
+
+    return children;
+};
+
 // Main App Component
 function App() {
     const { hydrateUser, isAuthenticated } = useAuthStore();
@@ -215,10 +240,7 @@ function App() {
 
     // Protected Route wrapper component
     const ProtectedRoute = ({ children }) => {
-        if (!isAuthenticated) {
-            return <Navigate to="/login" />;
-        }
-        return children;
+        return <AuthRedirect>{children}</AuthRedirect>;
     };
 
     // Protected Layout wrapper component

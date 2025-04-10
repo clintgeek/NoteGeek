@@ -17,11 +17,22 @@ const apiClient = axios.create({
 // Add request interceptor for auth token
 apiClient.interceptors.request.use(
     (config) => {
-        // Get token from localStorage
-        const token = localStorage.getItem('token');
+        // Get token from persisted auth store
+        const authStorage = localStorage.getItem('auth-storage');
+        let token = null;
+        if (authStorage) {
+            try {
+                const authState = JSON.parse(authStorage);
+                token = authState.state.token;
+            } catch (e) {
+                console.warn('Failed to parse auth storage:', e);
+            }
+        }
+
         console.log('API Request - URL:', config.url);
         console.log('API Request - Method:', config.method);
         console.log('API Request - Has Token:', !!token);
+
         if (token) {
             config.headers['Authorization'] = `Bearer ${token}`;
         } else {
@@ -53,10 +64,8 @@ apiClient.interceptors.response.use(
 
             // Handle 401 Unauthorized
             if (error.response.status === 401) {
-                console.warn('API - Unauthorized request, clearing token');
-                localStorage.removeItem('token');
-                // Optionally redirect to login
-                window.location.href = '/login';
+                console.warn('API - Unauthorized request, clearing auth state');
+                localStorage.removeItem('auth-storage');
             }
         } else if (error.request) {
             console.error('API No Response:', error.request);
