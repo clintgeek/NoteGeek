@@ -5,8 +5,8 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install ALL dependencies (including morgan which is in devDependencies)
-RUN npm ci
+# Install dependencies and generate package-lock.json
+RUN npm install
 
 # Copy source code
 COPY . .
