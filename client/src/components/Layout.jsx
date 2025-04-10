@@ -152,10 +152,21 @@ function Layout({ children }) {
                             overflow: 'hidden',
                             pt: 0,
                             pb: 0
-                        }
+                        },
+                        display: 'flex',
+                        justifyContent: 'center'
                     }}
                 >
-                    <Container maxWidth="lg" sx={{ px: { xs: 1, sm: 2 } }}>
+                    <Container
+                        maxWidth={false}
+                        sx={{
+                            px: { xs: 1, sm: 2 },
+                            width: '100%',
+                            maxWidth: { sm: `calc(800px + ${desktopOpen ? 0 : DRAWER_WIDTH}px)` },
+                            ml: { sm: 0 },
+                            mr: 'auto'
+                        }}
+                    >
                         {children}
                     </Container>
                 </Box>

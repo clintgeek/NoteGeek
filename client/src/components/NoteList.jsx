@@ -41,7 +41,7 @@ function NoteList({ tag, prefix }) {
 
     if (listError) {
         return (
-            <Alert severity="error">
+            <Alert severity="error" sx={{ width: '100%' }}>
                 {listError}
             </Alert>
         );
@@ -49,16 +49,30 @@ function NoteList({ tag, prefix }) {
 
     if (notes.length === 0) {
         return (
-            <Typography color="text.secondary">
-                No notes found. Create one!
-            </Typography>
+            <Box sx={{ width: '100%', textAlign: 'center', py: 4 }}>
+                <Typography color="text.secondary">
+                    No notes found. Create one!
+                </Typography>
+            </Box>
         );
     }
 
     return (
-        <List>
+        <List sx={{ width: '100%', maxWidth: '100%' }}>
             {notes.map((note) => (
-                <ListItem key={note._id} disablePadding sx={{ mb: 1 }}>
+                <ListItem
+                    key={note._id}
+                    disablePadding
+                    sx={{
+                        mb: 1,
+                        borderBottom: '1px solid',
+                        borderColor: 'divider',
+                        pb: 1,
+                        '&:last-child': {
+                            borderBottom: 'none'
+                        }
+                    }}
+                >
                     <ListItemText
                         primary={
                             <Box display="flex" alignItems="center" gap={1}>

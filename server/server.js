@@ -32,7 +32,8 @@ const app = express();
 const allowedOrigins = [
   'http://localhost:5173',    // Vite dev server
   'http://localhost:5001',    // Backend dev server
-  'https://notegeek.clintgeek.com'  // Production domain
+  'https://notegeek.clintgeek.com',  // Production domain
+  'http://192.168.1.26:5173'  // Local network access
 ];
 
 app.use(cors({
@@ -41,15 +42,25 @@ app.use(cors({
     if (!origin) return callback(null, true);
 
     if (allowedOrigins.indexOf(origin) === -1) {
-      return callback(new Error('The CORS policy for this site does not allow access from the specified Origin.'), false);
+      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+      return callback(new Error(msg), false);
     }
     return callback(null, true);
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
-  exposedHeaders: ['Content-Length', 'Content-Range'],
-  maxAge: 600,
+  allowedHeaders: [
+    'Content-Type',
+    'Authorization',
+    'X-Requested-With',
+    'Accept',
+    'Origin',
+    'Access-Control-Allow-Headers',
+    'Access-Control-Allow-Origin',
+    'Access-Control-Allow-Credentials'
+  ],
+  exposedHeaders: ['Content-Range'],
+  maxAge: 86400,
   preflightContinue: false,
   optionsSuccessStatus: 204
 }));

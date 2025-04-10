@@ -75,12 +75,21 @@ export default defineConfig(({ mode }) => {
     ],
     server: {
       port: 5173,
-      host: true,
+      host: '0.0.0.0', // Allow external access
       proxy: {
         '/api': {
           target: 'http://localhost:5001',
           changeOrigin: true,
-          secure: false
+          secure: false,
+          ws: true,
+          configure: (proxy) => {
+            proxy.on('proxyReq', (proxyReq, req) => {
+              // Copy Origin header to the proxy request
+              if (req.headers.origin) {
+                proxyReq.setHeader('Origin', req.headers.origin);
+              }
+            });
+          }
         }
       }
     },
