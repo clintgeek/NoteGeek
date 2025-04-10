@@ -38,12 +38,18 @@ if (compareVersions(process.version.substring(1), requiredNodeVersion) < 0) {
 
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react-swc'
+import commonjs from 'vite-plugin-commonjs'
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    commonjs({
+      include: ['jwt-decode']
+    })
+  ],
   optimizeDeps: {
-    include: ['react', 'react-dom'],
+    include: ['react', 'react-dom', 'jwt-decode'],
   },
   build: {
     commonjsOptions: {

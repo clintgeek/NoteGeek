@@ -1,13 +1,15 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 // Use `useParams` for route parameters
-import { BrowserRouter as Router, Routes, Route, Navigate, useParams, Link } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, Link, Outlet } from 'react-router-dom';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import {
     CssBaseline,
     Breadcrumbs as MUIBreadcrumbs,
     Link as MUILink,
     Typography,
-    GlobalStyles
+    GlobalStyles,
+    CircularProgress,
+    Box
 } from '@mui/material';
 import Layout from './components/Layout';
 import useAuthStore from './store/authStore';
@@ -22,8 +24,8 @@ import Register from './components/Register';
 import NoteList from './components/NoteList';
 import NoteEditor from './components/NoteEditor';
 import NotePage from './pages/NotePage';
-import ImportNotes from './components/ImportNotes';
 import SearchResults from './components/SearchResults';
+import TagNotesList from './components/TagNotesList';
 
 // Create theme
 const theme = createTheme({
@@ -152,50 +154,6 @@ const globalStyles = (
   />
 );
 
-// Tag Notes List Component
-const TagNotesList = () => {
-    const { tag } = useParams();
-    const decodedTag = decodeURIComponent(tag);
-    const parts = decodedTag.split('/');
-
-    const items = [
-        { title: 'Home', href: '/' },
-        ...parts.map((part, index) => {
-            const path = parts.slice(0, index + 1).join('/');
-            return {
-                title: part,
-                href: `/tags/${encodeURIComponent(path)}`
-            };
-        })
-    ];
-
-    return (
-        <>
-            <MUIBreadcrumbs sx={{ mb: 2 }}>
-                {items.map((item, index) => (
-                    index === items.length - 1 ? (
-                        <Typography key={index} color="text.primary" variant="h6">
-                            {item.title}
-                        </Typography>
-                    ) : (
-                        <MUILink
-                            key={index}
-                            component={Link}
-                            to={item.href}
-                            underline="hover"
-                            color="inherit"
-                            variant="h6"
-                        >
-                            {item.title}
-                        </MUILink>
-                    )
-                ))}
-            </MUIBreadcrumbs>
-            <NoteList tag={decodedTag} />
-        </>
-    );
-};
-
 // NewNoteWrapper component to clear state before showing editor
 function NewNoteWrapper() {
     const { clearSelectedNote } = useNoteStore();
@@ -209,29 +167,17 @@ function NewNoteWrapper() {
 }
 
 // Main App Component
-function MainApp() {
-    return (
-        <Layout>
-            <Routes>
-                <Route path="/" element={<NoteList />} />
-                <Route path="/notes/new" element={<NewNoteWrapper />} />
-                <Route path="/notes/:id" element={<NotePage />} />
-                <Route path="/notes/:id/edit" element={<NotePage />} />
-                <Route path="/import" element={<ImportNotes />} />
-                <Route path="/search" element={<SearchResults />} />
-                <Route path="/tags/:tag" element={<TagNotesList />} />
-                <Route path="*" element={<div>Page Not Found</div>} />
-            </Routes>
-        </Layout>
-    );
-}
-
-// Main App Component
 function App() {
-    const { hydrateUser } = useAuthStore();
+    const { hydrateUser, isAuthenticated } = useAuthStore();
+    const [isHydrating, setIsHydrating] = useState(true);
 
     useEffect(() => {
-        hydrateUser();
+        const initializeAuth = async () => {
+            await hydrateUser();
+            setIsHydrating(false);
+        };
+
+        initializeAuth();
 
         // Add style to prevent scrolling on mind map pages
         const style = document.createElement('style');
@@ -247,7 +193,41 @@ function App() {
         };
     }, [hydrateUser]);
 
-    const { isAuthenticated } = useAuthStore();
+    // Show loading state while hydrating auth
+    if (isHydrating) {
+        return (
+            <ThemeProvider theme={theme}>
+                <CssBaseline />
+                <Box
+                    display="flex"
+                    justifyContent="center"
+                    alignItems="center"
+                    minHeight="100vh"
+                >
+                    <CircularProgress />
+                </Box>
+            </ThemeProvider>
+        );
+    }
+
+    // Protected Route wrapper component
+    const ProtectedRoute = ({ children }) => {
+        if (!isAuthenticated) {
+            return <Navigate to="/login" />;
+        }
+        return children;
+    };
+
+    // Protected Layout wrapper component
+    const ProtectedLayout = () => {
+        return (
+            <ProtectedRoute>
+                <Layout>
+                    <Outlet />
+                </Layout>
+            </ProtectedRoute>
+        );
+    };
 
     return (
         <ThemeProvider theme={theme}>
@@ -257,7 +237,17 @@ function App() {
                 <Routes>
                     <Route path="/login" element={!isAuthenticated ? <Login /> : <Navigate to="/" />} />
                     <Route path="/register" element={!isAuthenticated ? <Register /> : <Navigate to="/" />} />
-                    <Route path="/*" element={isAuthenticated ? <MainApp /> : <Navigate to="/login" />} />
+                    <Route element={<ProtectedLayout />}>
+                        <Route index element={<NoteList />} />
+                        <Route path="/notes">
+                            <Route path="new" element={<NewNoteWrapper />} />
+                            <Route path=":id" element={<NotePage />} />
+                            <Route path=":id/edit" element={<NotePage />} />
+                        </Route>
+                        <Route path="/search" element={<SearchResults />} />
+                        <Route path="/tags/:tag" element={<TagNotesList />} />
+                        <Route path="*" element={<div>Page Not Found</div>} />
+                    </Route>
                 </Routes>
             </Router>
         </ThemeProvider>

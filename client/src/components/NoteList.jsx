@@ -9,7 +9,7 @@ import {
     CircularProgress,
     Link as MuiLink,
     Box,
-    Chip
+    Chip,
 } from '@mui/material';
 import useNoteStore from '../store/noteStore';
 
@@ -22,9 +22,12 @@ function NoteList({ tag, prefix }) {
 
     useEffect(() => {
         const filters = {};
-        if (tag) filters.tag = tag;
-        if (prefix) filters.prefix = prefix;
-
+        if (tag) {
+            filters.tag = tag;
+        }
+        if (prefix) {
+            filters.prefix = prefix;
+        }
         fetchNotes(filters);
     }, [fetchNotes, tag, prefix]);
 

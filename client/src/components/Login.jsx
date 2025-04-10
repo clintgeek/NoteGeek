@@ -12,7 +12,7 @@ import { useNavigate } from 'react-router-dom';
 import useAuthStore from '../store/authStore';
 
 function Login() {
-    const [username, setUsername] = useState('');
+    const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
@@ -25,7 +25,7 @@ function Login() {
         setLoading(true);
 
         try {
-            await login(username, password);
+            await login(email, password);
             navigate('/');
         } catch (err) {
             setError(err.message || 'Failed to login');
@@ -60,11 +60,12 @@ function Login() {
                 <form onSubmit={handleSubmit}>
                     <TextField
                         fullWidth
-                        label="Username"
+                        label="Email"
+                        type="email"
                         variant="outlined"
                         margin="normal"
-                        value={username}
-                        onChange={(e) => setUsername(e.target.value)}
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
                         disabled={loading}
                         required
                     />

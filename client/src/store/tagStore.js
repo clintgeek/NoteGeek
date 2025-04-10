@@ -16,14 +16,12 @@ const useTagStore = create((set, get) => ({
         set({ isLoading: true, error: null });
         try {
             const response = await getTagsApi();
-            console.log('Tags response:', response); // Add logging
             if (response.data) {
                 set({ tags: response.data, isLoading: false }); // API returns sorted array of strings
             } else {
                 throw new Error('No tags data received');
             }
         } catch (error) {
-            console.error('Fetch tags error:', error); // Enhanced error logging
             const errorMessage = error.response?.data?.message || error.message || 'Failed to fetch tags';
             set({ error: errorMessage, isLoading: false });
         }
@@ -58,7 +56,6 @@ const useTagStore = create((set, get) => ({
             );
             set({ tags: updatedTags, isLoading: false });
         } catch (error) {
-            console.error('Rename tag error:', error);
             set({
                 error: error.message || 'Failed to rename tag',
                 isLoading: false
@@ -78,7 +75,6 @@ const useTagStore = create((set, get) => ({
             );
             set({ tags: updatedTags, isLoading: false });
         } catch (error) {
-            console.error('Delete tag error:', error);
             set({
                 error: error.message || 'Failed to delete tag',
                 isLoading: false

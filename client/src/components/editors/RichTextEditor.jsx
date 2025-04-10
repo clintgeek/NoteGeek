@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { EditorContent, useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Link from '@tiptap/extension-link';
+import Underline from '@tiptap/extension-underline';
 import Placeholder from '@tiptap/extension-placeholder';
 import { Box, ButtonGroup, Button, Tooltip } from '@mui/material';
 import {
@@ -108,23 +109,48 @@ const MenuBar = ({ editor }) => {
 };
 
 const RichTextEditor = ({ content = '', setContent = () => {}, isLoading = false }) => {
+  const lastSavedContent = useRef(content);
+
   const editor = useEditor({
     extensions: [
       StarterKit,
       Link.configure({
         openOnClick: false,
       }),
+      Underline,
       Placeholder.configure({
         placeholder: 'Start typing...',
       }),
     ],
     content: content,
-    onUpdate: ({ editor }) => {
+    onBlur: ({ editor }) => {
       const html = editor.getHTML();
-      setContent(html);
+      if (html !== lastSavedContent.current) {
+        console.log('RichTextEditor - Content changed, saving on blur');
+        lastSavedContent.current = html;
+        setContent(html);
+      }
     },
     editable: !isLoading,
   });
+
+  // Update editor content when prop changes and differs from current content
+  useEffect(() => {
+    if (editor && content !== lastSavedContent.current) {
+      console.log('RichTextEditor - External content update');
+      editor.commands.setContent(content, false);
+      lastSavedContent.current = content;
+    }
+  }, [content, editor]);
+
+  // Cleanup editor on unmount
+  useEffect(() => {
+    return () => {
+      if (editor) {
+        editor.destroy();
+      }
+    };
+  }, [editor]);
 
   if (!editor) {
     return (

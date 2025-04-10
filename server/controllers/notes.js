@@ -85,20 +85,27 @@ export const getNotes = async (req, res) => {
   const userId = req.user._id;
   const { tag, prefix } = req.query;
 
+  console.log('Server - getNotes called with tag:', tag);
+  console.log('Server - getNotes called with prefix:', prefix);
+
   const filter = { userId };
 
   // Filter by exact tag match
   if (tag) {
-    filter.tags = tag;
+    filter.tags = { $in: [tag] };
+    console.log('Server - Filtering by tag:', filter.tags);
   }
 
   // Filter by tag prefix (for hierarchical tags)
   if (prefix) {
     filter.tags = { $regex: `^${prefix}` };
+    console.log('Server - Filtering by prefix:', filter.tags);
   }
 
   try {
+    console.log('Server - Final filter:', filter);
     const notes = await Note.find(filter).sort({ updatedAt: -1 });
+    console.log('Server - Found notes:', notes.length);
     res.status(200).json(notes);
   } catch (error) {
     console.error('Error fetching notes:', error);

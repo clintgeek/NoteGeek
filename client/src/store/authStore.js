@@ -1,137 +1,136 @@
 import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
-import {
-    loginApi as login,
-    registerApi as register,
-    setToken,
-    removeToken,
-    getToken
-} from '../services/api';
-
-// Helper to decode JWT (basic, doesn't verify signature)
-// A more robust solution might involve a library like jwt-decode
-const decodeToken = (token) => {
-    try {
-        return JSON.parse(atob(token.split('.')[1]));
-    } catch (e) {
-        console.error('Failed to decode token:', e);
-        return null;
-    }
-};
-
+import { persist } from 'zustand/middleware';
+import axios from 'axios';
+import useNoteStore from './noteStore';
 
 const useAuthStore = create(
-    // Use persist middleware to save auth state to localStorage
     persist(
         (set, get) => ({
-            token: getToken() || null,       // Initialize token from localStorage
-            user: null,        // User info (decoded from token or fetched)
+            token: null,
+            user: null,
             isAuthenticated: false,
             isLoading: false,
             error: null,
 
-            // Login action
-            login: async (username, password) => {
-                set({ isLoading: true, error: null });
+            login: async (email, password) => {
                 try {
-                    const response = await login({ username, password });
-                    const { token } = response.data;
-                    setToken(token);
+                    const response = await axios.post('http://localhost:5001/api/auth/login', {
+                        email,
+                        password,
+                    });
 
-                    // Decode user data from token
-                    const decoded = decodeToken(token);
-                    if (!decoded) {
-                        throw new Error('Invalid token received');
-                    }
+                    const { token } = response.data;
+
+                    // Dynamic import with proper await
+                    const jwtDecode = (await import('jwt-decode')).jwtDecode;
+                    const decoded = jwtDecode(token);
+
+                    const newState = {
+                        token,
+                        user: {
+                            id: decoded.id,
+                            email: decoded.email
+                        },
+                        isAuthenticated: true,
+                    };
+                    set(newState);
+
+                    // Fetch notes after successful login
+                    const noteStore = useNoteStore.getState();
+                    await noteStore.fetchNotes();
+
+                    return { success: true };
+                } catch (error) {
+                    console.error('Authentication failed:', error.response?.data?.message || error.message);
+                    return {
+                        success: false,
+                        error: error.response?.data?.message || 'Login failed',
+                    };
+                }
+            },
+
+            register: async (email, password) => {
+                try {
+                    const response = await axios.post('http://localhost:5001/api/auth/register', {
+                        email,
+                        password,
+                    });
+
+                    const { token } = response.data;
+
+                    // Dynamic import
+                    const { default: jwt_decode } = await import('jwt-decode');
+
+                    const decoded = jwt_decode(token);
 
                     set({
                         token,
                         user: {
                             id: decoded.id,
-                            username: decoded.username
+                            email: decoded.email
                         },
                         isAuthenticated: true,
-                        isLoading: false
                     });
-                    return true;
+
+                    return { success: true };
                 } catch (error) {
-                    const errorMessage = error.response?.data?.message || 'Login failed';
-                    set({ error: errorMessage, isLoading: false, isAuthenticated: false });
-                    console.error('Login error:', errorMessage);
-                    removeToken();
-                    return false;
+                    console.error('Registration failed:', error.response?.data?.message || error.message);
+                    return {
+                        success: false,
+                        error: error.response?.data?.message || 'Registration failed',
+                    };
                 }
             },
 
-            // Register action
-            register: async (username, password) => {
-                set({ isLoading: true, error: null });
-                try {
-                    const response = await register({ username, password });
-                    const { token } = response.data;
-                    setToken(token);
-
-                    // Decode user data from token
-                    const decoded = decodeToken(token);
-                    if (!decoded) {
-                        throw new Error('Invalid token received');
-                    }
-
-                    set({
-                        token,
-                        user: {
-                            id: decoded.id,
-                            username: decoded.username
-                        },
-                        isAuthenticated: true,
-                        isLoading: false
-                    });
-                    return true;
-                } catch (error) {
-                    const errorMessage = error.response?.data?.message || 'Registration failed';
-                    set({ error: errorMessage, isLoading: false, isAuthenticated: false });
-                    console.error('Registration error:', errorMessage);
-                    removeToken();
-                    return false;
-                }
-            },
-
-            // Logout action
             logout: () => {
-                removeToken();
-                set({ token: null, user: null, isAuthenticated: false, error: null });
+                set({
+                    token: null,
+                    user: null,
+                    isAuthenticated: false,
+                });
             },
 
-            // Hydrate user from token
-            hydrateUser: () => {
-                const token = getToken();
+            hydrateUser: async () => {
+                const { token } = get();
                 if (token) {
-                    const decoded = decodeToken(token);
-                    if (decoded && decoded.id) {
+                    try {
+                        const jwtDecode = (await import('jwt-decode')).jwtDecode;
+                        const decoded = jwtDecode(token);
+                        const currentTime = Date.now() / 1000;
+
+                        if (decoded.exp < currentTime) {
+                            console.log('Session expired - logging out');
+                            set({
+                                token: null,
+                                user: null,
+                                isAuthenticated: false,
+                            });
+                            return false;
+                        }
+
                         set({
-                            token,
                             user: {
                                 id: decoded.id,
-                                username: decoded.username
+                                email: decoded.email
                             },
-                            isAuthenticated: true
+                            isAuthenticated: true,
                         });
-                    } else {
-                        // Invalid token
-                        removeToken();
-                        set({ token: null, user: null, isAuthenticated: false });
+                        return true;
+                    } catch (error) {
+                        console.error('Session validation failed:', error.message);
+                        set({
+                            token: null,
+                            user: null,
+                            isAuthenticated: false,
+                        });
+                        return false;
                     }
                 }
+                return false;
             }
         }),
         {
             name: 'auth-storage',
-            storage: createJSONStorage(() => localStorage),
-            partialize: (state) => ({
-                token: state.token,
-                user: state.user,
-                isAuthenticated: state.isAuthenticated
-            })
         }
     )
 );

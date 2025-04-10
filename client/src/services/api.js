@@ -19,8 +19,13 @@ apiClient.interceptors.request.use(
     (config) => {
         // Get token from localStorage
         const token = localStorage.getItem('token');
+        console.log('API Request - URL:', config.url);
+        console.log('API Request - Method:', config.method);
+        console.log('API Request - Has Token:', !!token);
         if (token) {
             config.headers['Authorization'] = `Bearer ${token}`;
+        } else {
+            console.warn('API Request - No auth token found');
         }
         return config;
     },
@@ -33,10 +38,31 @@ apiClient.interceptors.request.use(
 // Add response interceptor for auth errors
 apiClient.interceptors.response.use(
     (response) => {
+        console.log('API Response - Status:', response.status);
+        console.log('API Response - URL:', response.config.url);
         return response;
     },
     (error) => {
-        console.error('API Response Error:', error);
+        if (error.response) {
+            console.error('API Error Response:', {
+                status: error.response.status,
+                url: error.config?.url,
+                message: error.response.data?.message || error.message,
+                data: error.response.data
+            });
+
+            // Handle 401 Unauthorized
+            if (error.response.status === 401) {
+                console.warn('API - Unauthorized request, clearing token');
+                localStorage.removeItem('token');
+                // Optionally redirect to login
+                window.location.href = '/login';
+            }
+        } else if (error.request) {
+            console.error('API No Response:', error.request);
+        } else {
+            console.error('API Error:', error.message);
+        }
         return Promise.reject(error);
     }
 );

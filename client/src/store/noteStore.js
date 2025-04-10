@@ -27,6 +27,30 @@ const useNoteStore = create((set, get) => {
         lastFetchedNoteId: null, // Track the last successfully fetched note ID
         pendingNote: null,   // Store a pending note during transitions
 
+        // Action to clear all notes state (used during logout)
+        clearNotes: () => {
+            // Clear any pending timer
+            if (selectedNoteTimer) {
+                clearTimeout(selectedNoteTimer);
+                selectedNoteTimer = null;
+            }
+            // Reset all note-related state
+            set({
+                notes: [],
+                selectedNote: null,
+                isLoadingList: false,
+                isLoadingSelected: false,
+                error: null,
+                listError: null,
+                selectedError: null,
+                searchResults: [],
+                isSearching: false,
+                searchError: null,
+                lastFetchedNoteId: null,
+                pendingNote: null
+            });
+        },
+
         // Action to fetch notes list
         fetchNotes: async (filters = {}) => {
             if (get().isLoadingList) return;
@@ -37,7 +61,6 @@ const useNoteStore = create((set, get) => {
             } catch (error) {
                 const errorMessage = error.response?.data?.message || 'Failed to fetch notes';
                 set({ listError: errorMessage, isLoadingList: false });
-                console.error('Fetch notes error:', errorMessage);
             }
         },
 
@@ -49,14 +72,10 @@ const useNoteStore = create((set, get) => {
             set({ isLoadingSelected: true, selectedError: null, lastFetchedNoteId: noteId });
 
             try {
-                console.log("Store - Fetching note with ID:", noteId);
                 const response = await getNoteByIdApi(noteId);
-                console.log("Store - API response status:", response.status);
-                console.log("Store - API response data:", JSON.stringify(response.data));
 
                 // Check if we received valid note data
                 if (!response.data || !response.data._id) {
-                    console.error("Store - Invalid note data received:", response.data);
                     throw new Error("Invalid note data received from server");
                 }
 
@@ -71,9 +90,7 @@ const useNoteStore = create((set, get) => {
 
                 // Update the note in the store, but wait a moment to ensure React has time to process
                 selectedNoteTimer = setTimeout(() => {
-                    console.log("Store - Setting selectedNote:", response.data._id);
                     set({ selectedNote: response.data, pendingNote: null });
-                    console.log("Store - Updated selectedNote in state:", response.data._id);
                 }, 20);
 
                 // Handle locked notes message from API if needed
@@ -83,7 +100,6 @@ const useNoteStore = create((set, get) => {
 
                 return response.data; // Return fetched note
             } catch (error) {
-                console.error('Store - Fetch note by ID error details:', error);
                 const errorMessage = error.response?.data?.message || 'Failed to fetch note';
                 const statusCode = error.response?.status;
 
@@ -97,7 +113,6 @@ const useNoteStore = create((set, get) => {
                     set({ selectedError: errorMessage, isLoadingSelected: false, selectedNote: null });
                 }
 
-                console.error(`Store - Fetch note by ID error (${statusCode}):`, errorMessage);
                 return null; // Return null on error
             }
         },
@@ -121,15 +136,10 @@ const useNoteStore = create((set, get) => {
             try {
                 const response = await createNoteApi(noteData);
                 set({ selectedNote: response.data, isLoadingSelected: false });
-                // Optionally refetch the notes list or add locally?
-                // get().fetchNotes(); // Could trigger list refresh
-                // Or add to list state directly for faster UI update:
-                // set((state) => ({ notes: [response.data, ...state.notes] }));
                 return response.data; // Return created note
             } catch (error) {
                 const errorMessage = error.response?.data?.message || 'Failed to create note';
                 set({ selectedError: errorMessage, isLoadingSelected: false });
-                console.error('Create note error:', errorMessage);
                 return null;
             }
         },
@@ -140,17 +150,10 @@ const useNoteStore = create((set, get) => {
              try {
                 const response = await updateNoteApi(noteId, noteData);
                 set({ selectedNote: response.data, isLoadingSelected: false });
-                // Optionally refetch the notes list or update locally
-                 // get().fetchNotes();
-                 // Or update in list state:
-                 // set((state) => ({
-                 //     notes: state.notes.map(n => n._id === noteId ? response.data : n)
-                 // }));
                 return response.data; // Return updated note
             } catch (error) {
                 const errorMessage = error.response?.data?.message || 'Failed to update note';
                 set({ selectedError: errorMessage, isLoadingSelected: false });
-                console.error('Update note error:', errorMessage);
                 return null;
             }
         },
@@ -163,13 +166,10 @@ const useNoteStore = create((set, get) => {
                 set({ selectedNote: null, isLoadingSelected: false }); // Clear selection on delete
                 // Refetch or remove from list
                  get().fetchNotes(); // Easiest way to refresh list
-                // Or remove from list state:
-                // set((state) => ({ notes: state.notes.filter(n => n._id !== noteId) }));
                 return true; // Indicate success
             } catch (error) {
                  const errorMessage = error.response?.data?.message || 'Failed to delete note';
                 set({ selectedError: errorMessage, isLoadingSelected: false });
-                console.error('Delete note error:', errorMessage);
                 return false;
             }
         },
@@ -180,7 +180,6 @@ const useNoteStore = create((set, get) => {
                 const response = await searchNotesApi(query);
                 set({ searchResults: response.data, isSearching: false });
             } catch (error) {
-                console.error('Search notes error:', error);
                 set({
                     searchError: error.message || 'Failed to search notes',
                     isSearching: false

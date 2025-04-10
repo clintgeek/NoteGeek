@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
     List,
@@ -33,15 +33,23 @@ function Sidebar({ closeNavbar }) {
     const { logout, user } = useAuthStore();
     const { clearNotes } = useNoteStore();
     const [tagFilter, setTagFilter] = useState('');
+    const [hasFetchedTags, setHasFetchedTags] = useState(false);
+
+    const fetchUserTags = useCallback(async () => {
+        if (user?.id && !hasFetchedTags) {
+            await fetchTags();
+            setHasFetchedTags(true);
+        }
+    }, [user, fetchTags, hasFetchedTags]);
 
     useEffect(() => {
-        if (user) {
-            console.log('Sidebar: Fetching tags for user:', user.username);
-            fetchTags();
-        } else {
-            console.log('Sidebar: No user available for tag fetch');
-        }
-    }, [fetchTags, user]);
+        fetchUserTags();
+    }, [fetchUserTags]);
+
+    // Reset hasFetchedTags when user changes
+    useEffect(() => {
+        setHasFetchedTags(false);
+    }, [user?.id]);
 
     const handleLinkClick = () => {
         closeNavbar?.();
@@ -240,14 +248,6 @@ function Sidebar({ closeNavbar }) {
                 zIndex: 1 // Ensure it stays above scrolling content
             }}>
                 <List>
-                    <ListItem disablePadding>
-                        <ListItemButton component={Link} to="/import" onClick={handleLinkClick}>
-                            <ListItemIcon>
-                                <UploadIcon />
-                            </ListItemIcon>
-                            <ListItemText primary="Import Notes" />
-                        </ListItemButton>
-                    </ListItem>
                     <ListItem disablePadding>
                         <ListItemButton onClick={handleLogout}>
                             <ListItemIcon>

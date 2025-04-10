@@ -36,8 +36,6 @@ function NoteEditor() {
     const [noteType, setNoteType] = useState(NOTE_TYPES.TEXT);
     const [saveStatus, setSaveStatus] = useState('');
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-    const [isEditMode, setIsEditMode] = useState(id === 'new'); // Edit mode by default for new notes
-    const saveTimeoutRef = useRef(null);
     const initialLoadDone = useRef(false);
 
     // Track if we've already saved this as a new note
@@ -49,12 +47,39 @@ function NoteEditor() {
     // Determine if this is a mind map type note
     const isMindMap = noteType === NOTE_TYPES.MINDMAP;
 
+    // Initialize edit mode state after noteToEdit is defined
+    const [isEditMode, setIsEditMode] = useState(() => {
+        // Always start in edit mode for new notes
+        if (id === 'new') return true;
+        // For existing notes, only start in view mode if it's a mind map
+        if (noteToEdit?.type === NOTE_TYPES.MINDMAP) return false;
+        // Default to edit mode
+        return true;
+    });
+
+    // Handle content changes
+    const handleContentChange = (newContent) => {
+        setContent(newContent);
+    };
+
+    // Handle title changes
+    const handleTitleChange = (e) => {
+        setTitle(e.target.value);
+    };
+
+    // Handle tag changes
+    const handleTagsChange = (newTags) => {
+        setSelectedTags(newTags);
+    };
+
     // Reset form function
     const resetForm = useCallback(() => {
         setTitle('');
         setContent('');
         setSelectedTags([]);
         setNoteType(NOTE_TYPES.TEXT);
+        // Always start in edit mode for new notes
+        setIsEditMode(true);
     }, []);
 
     // Load note data or reset form when component mounts or id changes
@@ -84,7 +109,7 @@ function NoteEditor() {
                 console.log("NoteEditor - Setting type to:", noteToEdit.type);
                 setNoteType(noteToEdit.type);
 
-                // Mind maps start in view mode
+                // Only set view mode for existing mind maps
                 if (noteToEdit.type === NOTE_TYPES.MINDMAP && id !== 'new') {
                     setIsEditMode(false);
                 }
@@ -98,9 +123,6 @@ function NoteEditor() {
 
         // Cleanup on unmount
         return () => {
-            if (saveTimeoutRef.current) {
-                clearTimeout(saveTimeoutRef.current);
-            }
             initialLoadDone.current = false;
         };
     }, [id, noteToEdit, resetForm, savedNoteId]);
@@ -112,32 +134,6 @@ function NoteEditor() {
 
     // Manual save function - call directly when save button is clicked
     const handleManualSave = async () => {
-        const result = await handleSave(false);
-        // Manual save should navigate
-        if (result && id === 'new') {
-            navigate(`/notes/${result._id}`);
-        }
-        return result;
-    };
-
-    // Auto-save function - debounced when content changes
-    const handleAutoSave = useCallback(() => {
-        if (saveTimeoutRef.current) {
-            clearTimeout(saveTimeoutRef.current);
-        }
-
-        // Don't auto-save unless we have content
-        if (!content.trim()) {
-            return;
-        }
-
-        saveTimeoutRef.current = setTimeout(() => {
-            handleSave(true);
-        }, 2000);
-    }, [content]);
-
-    // The core save function used by both manual and auto-save
-    const handleSave = async (isAutoSave = false) => {
         try {
             // Always require content
             if (!content.trim()) {
@@ -180,11 +176,8 @@ function NoteEditor() {
                     console.log("Saved note type:", savedNote.type);
                     // Remember this ID for future saves
                     setSavedNoteId(savedNote._id);
-
-                    // Update URL without navigation for auto-saves
-                    if (isAutoSave) {
-                        window.history.replaceState(null, '', `/notes/${savedNote._id}`);
-                    }
+                    // Navigate to the new note's URL
+                    navigate(`/notes/${savedNote._id}`);
                 }
             }
 
@@ -197,8 +190,8 @@ function NoteEditor() {
                 setSaveStatus('Saved');
                 setTimeout(() => setSaveStatus(''), 2000);
 
-                // If we just saved a mind map, switch to view mode
-                if (isMindMap) {
+                // Only switch to view mode for mind maps if it's not a new note
+                if (isMindMap && id !== 'new') {
                     setIsEditMode(false);
                 }
             } else {
@@ -212,19 +205,6 @@ function NoteEditor() {
             return null;
         }
     };
-
-    // Auto-save when content changes
-    useEffect(() => {
-        if (initialLoadDone.current && isEditMode && content.trim()) {
-            handleAutoSave();
-        }
-
-        return () => {
-            if (saveTimeoutRef.current) {
-                clearTimeout(saveTimeoutRef.current);
-            }
-        };
-    }, [content, isEditMode, handleAutoSave]);
 
     // Show spinner while loading
     if (isLoadingSelected) {
@@ -258,29 +238,29 @@ function NoteEditor() {
         switch (noteType) {
             case NOTE_TYPES.MARKDOWN:
                 console.log("Rendering Markdown editor");
-                return <MarkdownEditor content={content} setContent={setContent} />;
+                return <MarkdownEditor content={content} setContent={handleContentChange} />;
             case NOTE_TYPES.CODE:
                 console.log("Rendering Code editor");
-                return <CodeEditor content={content} setContent={setContent} />;
+                return <CodeEditor content={content} setContent={handleContentChange} />;
             case NOTE_TYPES.MINDMAP:
                 console.log("Rendering MindMap editor");
                 return <MindMapEditor
                     content={content}
-                    setContent={setContent}
+                    setContent={handleContentChange}
                     readOnly={!isEditMode}
                 />;
             case NOTE_TYPES.TEXT:
                 console.log("Rendering Rich Text editor");
                 return <RichTextEditor
                     content={content}
-                    setContent={setContent}
+                    setContent={handleContentChange}
                     isLoading={isLoadingSelected}
                 />;
             default:
                 console.log("Defaulting to Rich Text editor");
                 return <RichTextEditor
                     content={content}
-                    setContent={setContent}
+                    setContent={handleContentChange}
                     isLoading={isLoadingSelected}
                 />;
         }
@@ -313,7 +293,7 @@ function NoteEditor() {
                         placeholder="Title"
                         variant="outlined"
                         value={title}
-                        onChange={(e) => setTitle(e.target.value)}
+                        onChange={handleTitleChange}
                         size="small"
                         sx={{ flexGrow: 1 }}
                         disabled={!isEditMode && isMindMap}
@@ -328,7 +308,13 @@ function NoteEditor() {
                                 </Typography>
                                 <NoteTypeSelector
                                     value={noteType}
-                                    onChange={setNoteType}
+                                    onChange={(newType) => {
+                                        setNoteType(newType);
+                                        // Ensure we're in edit mode for new mind maps
+                                        if (newType === NOTE_TYPES.MINDMAP && (id === 'new' || !savedNoteId)) {
+                                            setIsEditMode(true);
+                                        }
+                                    }}
                                 />
                             </Box>
                         </>
@@ -336,7 +322,7 @@ function NoteEditor() {
 
                     <TagSelector
                         selectedTags={selectedTags}
-                        onChange={setSelectedTags}
+                        onChange={handleTagsChange}
                         disabled={!isEditMode && isMindMap}
                     />
 

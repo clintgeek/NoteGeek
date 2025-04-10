@@ -3,15 +3,22 @@ import jwt from 'jsonwebtoken';
 import User from '../models/User.js'; // Import the User model
 
 // Function to generate JWT token
-const generateToken = (id) => {
+const generateToken = (user) => {
   // Ensure JWT_SECRET is set in environment variables
   if (!process.env.JWT_SECRET) {
     console.error('FATAL ERROR: JWT_SECRET is not defined.');
     process.exit(1);
   }
-  return jwt.sign({ id }, process.env.JWT_SECRET, {
+  return jwt.sign(
+    {
+      id: user._id,
+      email: user.email
+    },
+    process.env.JWT_SECRET,
+    {
     expiresIn: '30d', // Token expires in 30 days
-  });
+    }
+  );
 };
 
 // @desc    Register a new user
@@ -54,7 +61,7 @@ export const registerUser = async (req, res) => {
         _id: user._id,
         email: user.email,
         createdAt: user.createdAt,
-        token: generateToken(user._id),
+        token: generateToken(user),
       });
     } else {
       res.status(400).json({ message: 'Invalid user data' }); // Should not happen if validation passes
@@ -99,7 +106,7 @@ export const loginUser = async (req, res) => {
         _id: user._id,
         email: user.email,
         createdAt: user.createdAt,
-        token: generateToken(user._id),
+        token: generateToken(user),
       });
     } else {
       // Authentication failed
