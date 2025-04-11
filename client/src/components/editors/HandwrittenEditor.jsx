@@ -5,6 +5,8 @@ import {
     IconButton,
     Stack,
     Tooltip,
+    useTheme,
+    useMediaQuery,
 } from '@mui/material';
 import {
     Delete as DeleteIcon,
@@ -16,6 +18,8 @@ import {
 } from '@mui/icons-material';
 
 const HandwrittenEditor = ({ content, setContent, readOnly }) => {
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
     const sigCanvas = useRef(null);
     const containerRef = useRef(null);
     const [color, setColor] = useState('#000000');
@@ -98,12 +102,94 @@ const HandwrittenEditor = ({ content, setContent, readOnly }) => {
     const colors = ['#000000', '#FF0000', '#0000FF', '#008000'];
     const sizes = [1, 2, 3, 5];
 
+    const renderToolbar = () => (
+        <Stack
+            direction="row"
+            spacing={0.5}
+            alignItems="center"
+            sx={{
+                p: 0.5,
+                borderBottom: 1,
+                borderColor: 'divider',
+                bgcolor: 'background.paper',
+                position: 'sticky',
+                top: 0,
+                zIndex: 1,
+                flexWrap: isMobile ? 'wrap' : 'nowrap',
+                justifyContent: 'space-between'
+            }}
+        >
+            <Stack direction="row" spacing={0.5} alignItems="center">
+                {/* Drawing Tools */}
+                <Stack direction="row" spacing={0.5}>
+                    <Tooltip title="Undo">
+                        <IconButton onClick={handleUndo} size="small">
+                            <UndoIcon fontSize="small" />
+                        </IconButton>
+                    </Tooltip>
+
+                    {/* Color selector */}
+                    {colors.map((c) => (
+                        <Tooltip key={c} title={`Color: ${c}`}>
+                            <IconButton
+                                size="small"
+                                onClick={() => setColor(c)}
+                                sx={{
+                                    color: c,
+                                    bgcolor: color === c ? 'action.selected' : 'transparent',
+                                    '&:hover': { bgcolor: 'action.hover' },
+                                    padding: isMobile ? '4px' : '8px'
+                                }}
+                            >
+                                <ColorIcon fontSize="small" />
+                            </IconButton>
+                        </Tooltip>
+                    ))}
+                </Stack>
+
+                {/* Pen size selector */}
+                <Stack direction="row" spacing={0.5}>
+                    {sizes.map((size) => (
+                        <Tooltip key={size} title={`Size: ${size}`}>
+                            <IconButton
+                                size="small"
+                                onClick={() => setPenSize(size)}
+                                sx={{
+                                    bgcolor: penSize === size ? 'action.selected' : 'transparent',
+                                    '&:hover': { bgcolor: 'action.hover' },
+                                    padding: isMobile ? '4px' : '8px'
+                                }}
+                            >
+                                <BrushIcon sx={{ fontSize: 12 + size * 2 }} />
+                            </IconButton>
+                        </Tooltip>
+                    ))}
+                </Stack>
+            </Stack>
+
+            {/* Action Buttons */}
+            <Stack direction="row" spacing={0.5}>
+                <Tooltip title="Clear">
+                    <IconButton onClick={handleClear} size="small" color="error">
+                        <DeleteIcon fontSize="small" />
+                    </IconButton>
+                </Tooltip>
+                <Tooltip title="Save">
+                    <IconButton onClick={handleSave} size="small" color="primary">
+                        <SaveIcon fontSize="small" />
+                    </IconButton>
+                </Tooltip>
+            </Stack>
+        </Stack>
+    );
+
     if (readOnly) {
         return (
             <Box sx={{
                 display: 'flex',
                 flexDirection: 'column',
                 height: '100%',
+                width: '100%',
                 bgcolor: 'background.paper',
                 borderRadius: 1,
                 overflow: 'hidden'
@@ -115,6 +201,7 @@ const HandwrittenEditor = ({ content, setContent, readOnly }) => {
                         position: 'relative',
                         overflowY: 'auto',
                         overflowX: 'hidden',
+                        width: '100%',
                         '&::-webkit-scrollbar': {
                             width: '8px',
                         },
@@ -161,77 +248,12 @@ const HandwrittenEditor = ({ content, setContent, readOnly }) => {
             display: 'flex',
             flexDirection: 'column',
             height: '100%',
+            width: '100%',
             bgcolor: 'background.paper',
             borderRadius: 1,
             overflow: 'hidden'
         }}>
-            {/* Toolbar */}
-            <Stack
-                direction="row"
-                spacing={1}
-                sx={{
-                    p: 1,
-                    borderBottom: 1,
-                    borderColor: 'divider',
-                    bgcolor: 'background.paper',
-                    position: 'sticky',
-                    top: 0,
-                    zIndex: 1
-                }}
-            >
-                <Tooltip title="Clear">
-                    <IconButton onClick={handleClear} size="small">
-                        <DeleteIcon />
-                    </IconButton>
-                </Tooltip>
-                <Tooltip title="Undo">
-                    <IconButton onClick={handleUndo} size="small">
-                        <UndoIcon />
-                    </IconButton>
-                </Tooltip>
-                <Tooltip title="Save">
-                    <IconButton onClick={handleSave} size="small">
-                        <SaveIcon />
-                    </IconButton>
-                </Tooltip>
-
-                {/* Color selector */}
-                <Stack direction="row" spacing={0.5}>
-                    {colors.map((c) => (
-                        <Tooltip key={c} title={`Color: ${c}`}>
-                            <IconButton
-                                size="small"
-                                onClick={() => setColor(c)}
-                                sx={{
-                                    color: c,
-                                    bgcolor: color === c ? 'action.selected' : 'transparent',
-                                    '&:hover': { bgcolor: 'action.hover' }
-                                }}
-                            >
-                                <ColorIcon />
-                            </IconButton>
-                        </Tooltip>
-                    ))}
-                </Stack>
-
-                {/* Pen size selector */}
-                <Stack direction="row" spacing={0.5}>
-                    {sizes.map((size) => (
-                        <Tooltip key={size} title={`Size: ${size}`}>
-                            <IconButton
-                                size="small"
-                                onClick={() => setPenSize(size)}
-                                sx={{
-                                    bgcolor: penSize === size ? 'action.selected' : 'transparent',
-                                    '&:hover': { bgcolor: 'action.hover' }
-                                }}
-                            >
-                                <BrushIcon sx={{ fontSize: 14 + size * 2 }} />
-                            </IconButton>
-                        </Tooltip>
-                    ))}
-                </Stack>
-            </Stack>
+            {renderToolbar()}
 
             {/* Canvas Container */}
             <Box
@@ -242,6 +264,8 @@ const HandwrittenEditor = ({ content, setContent, readOnly }) => {
                     position: 'relative',
                     overflowY: 'auto',
                     overflowX: 'hidden',
+                    width: '100%',
+                    touchAction: 'pan-y pinch-zoom',
                     '&::-webkit-scrollbar': {
                         width: '8px',
                     },
@@ -276,7 +300,8 @@ const HandwrittenEditor = ({ content, setContent, readOnly }) => {
                         style: {
                             width: '100%',
                             height: `${canvasHeight}px`,
-                            cursor: 'crosshair'
+                            cursor: 'crosshair',
+                            touchAction: 'none'
                         }
                     }}
                     backgroundColor='rgb(255, 255, 255)'

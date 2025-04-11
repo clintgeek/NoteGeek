@@ -23,6 +23,16 @@ function NoteTypeSelector({ value, onChange }) {
             onChange={handleChange}
             size="small"
             aria-label="note type"
+            sx={{
+                height: '40px',
+                '& .MuiToggleButton-root': {
+                    height: '100%',
+                    padding: { xs: '4px 8px', sm: '4px 12px' },
+                    '& .MuiSvgIcon-root': {
+                        fontSize: { xs: '1.25rem', sm: '1.4rem' }
+                    }
+                }
+            }}
         >
             <Tooltip title="Text">
                 <ToggleButton value={NOTE_TYPES.TEXT} aria-label="text">

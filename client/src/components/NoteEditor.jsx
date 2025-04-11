@@ -134,11 +134,6 @@ function NoteEditor() {
         };
     }, [id, noteToEdit, resetForm]); // Remove savedNoteId from dependencies
 
-    // Toggle edit mode
-    const toggleEditMode = () => {
-        setIsEditMode(!isEditMode);
-    };
-
     // Manual save function - call directly when save button is clicked
     const handleManualSave = async () => {
         try {
@@ -286,8 +281,9 @@ function NoteEditor() {
             <Box p={2} bgcolor="background.paper" borderBottom={1} borderColor="divider">
                 <Stack
                     direction={{ xs: 'column', sm: 'row' }}
-                    spacing={2}
+                    spacing={1}
                     alignItems={{ xs: 'stretch', sm: 'center' }}
+                    sx={{ width: '100%' }}
                 >
                     <TextField
                         placeholder="Title"
@@ -299,74 +295,82 @@ function NoteEditor() {
                         disabled={!isEditMode && isMindMap}
                     />
 
-                    {/* Show type selector only for brand new notes that haven't been saved yet */}
-                    {(!savedNoteId || id === 'new') && (
-                        <>
-                            <Box sx={{ ml: 1, mr: 1, display: 'flex', alignItems: 'center' }}>
-                                <Typography variant="body2" sx={{ mr: 1, fontWeight: 'bold' }}>
-                                    Note Type:
+                    <Stack
+                        direction="row"
+                        spacing={1}
+                        alignItems="center"
+                        sx={{ width: { xs: '100%', sm: 'auto' } }}
+                    >
+                        {/* Show type selector only for brand new notes that haven't been saved yet */}
+                        {(!savedNoteId || id === 'new') && (
+                            <Box sx={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+                                <Typography variant="body2" sx={{ mr: 1, display: { xs: 'none', sm: 'block' }, fontWeight: 'bold' }}>
+                                    Type:
                                 </Typography>
                                 <NoteTypeSelector
                                     value={noteType}
                                     onChange={(newType) => {
                                         setNoteType(newType);
-                                        // Ensure we're in edit mode for new mind maps
                                         if (newType === NOTE_TYPES.MINDMAP && (id === 'new' || !savedNoteId)) {
                                             setIsEditMode(true);
                                         }
                                     }}
                                 />
                             </Box>
-                        </>
-                    )}
+                        )}
 
-                    <TagSelector
-                        selectedTags={selectedTags}
-                        onChange={handleTagsChange}
-                        disabled={!isEditMode && isMindMap}
-                    />
+                        <TagSelector
+                            selectedTags={selectedTags}
+                            onChange={handleTagsChange}
+                            disabled={!isEditMode && isMindMap}
+                            sx={{
+                                minWidth: { xs: '100%', sm: '200px' },
+                                flexGrow: { xs: 1, sm: 0 }
+                            }}
+                        />
+                    </Stack>
 
-                    {/* Toggle edit mode button for mind maps */}
-                    {isMindMap && (id !== 'new' || savedNoteId) && (
-                        <Button
-                            variant="outlined"
-                            color={isEditMode ? "secondary" : "primary"}
-                            startIcon={isEditMode ? <Cancel /> : <Edit />}
-                            onClick={toggleEditMode}
-                            size="small"
-                        >
-                            {isEditMode ? "Cancel" : "Edit"}
-                        </Button>
-                    )}
+                    <Stack
+                        direction="row"
+                        spacing={1}
+                        sx={{
+                            width: { xs: '100%', sm: 'auto' },
+                            justifyContent: 'flex-end',
+                            alignItems: 'center'
+                        }}
+                    >
+                        {/* Save button - only show in edit mode for mind maps */}
+                        {(isEditMode || !isMindMap) && (
+                            <Button
+                                variant="contained"
+                                color="primary"
+                                startIcon={<Save />}
+                                onClick={handleManualSave}
+                                size="small"
+                                sx={{
+                                    minWidth: '80px',
+                                    flex: { xs: 1, sm: 'none' }
+                                }}
+                            >
+                                {saveStatus === 'Saving...' ? (
+                                    <CircularProgress size={20} color="inherit" />
+                                ) : (
+                                    saveStatus === 'Saved' ? 'Saved' : 'Save'
+                                )}
+                            </Button>
+                        )}
 
-                    {/* Save button - only show in edit mode for mind maps */}
-                    {(isEditMode || !isMindMap) && (
-                        <Button
-                            variant="contained"
-                            color="primary"
-                            startIcon={<Save />}
-                            onClick={handleManualSave}
-                            size="small"
-                            sx={{ minWidth: '85px' }}
-                        >
-                            {saveStatus === 'Saving...' ? (
-                                <CircularProgress size={20} color="inherit" />
-                            ) : (
-                                saveStatus === 'Saved' ? 'Saved' : 'Save'
-                            )}
-                        </Button>
-                    )}
-
-                    {/* Delete button - always show for saved notes */}
-                    {(id !== 'new' || savedNoteId) && (
-                        <IconButton
-                            color="error"
-                            onClick={() => setIsDeleteDialogOpen(true)}
-                            size="small"
-                        >
-                            <DeleteOutline />
-                        </IconButton>
-                    )}
+                        {/* Delete button - always show for saved notes */}
+                        {(id !== 'new' || savedNoteId) && (
+                            <IconButton
+                                color="error"
+                                onClick={() => setIsDeleteDialogOpen(true)}
+                                size="small"
+                            >
+                                <DeleteOutline />
+                            </IconButton>
+                        )}
+                    </Stack>
                 </Stack>
             </Box>
 
@@ -376,7 +380,7 @@ function NoteEditor() {
                     display: 'flex',
                     flexDirection: 'column',
                     bgcolor: 'background.default',
-                    height: isMindMap ? 'calc(100vh - 180px)' : 'calc(100vh - 160px)',
+                    height: isMindMap ? 'calc(100vh - 160px)' : 'calc(100vh - 140px)',
                     overflow: 'hidden'
                 }}
             >
