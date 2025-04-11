@@ -266,6 +266,8 @@ function NoteEditor() {
             elevation={0}
             sx={{
                 height: '100%',
+                width: '100%',
+                maxWidth: '100%',
                 display: 'flex',
                 flexDirection: 'column',
                 borderRadius: 0,
@@ -278,7 +280,7 @@ function NoteEditor() {
                 })
             }}
         >
-            <Box p={2} bgcolor="background.paper" borderBottom={1} borderColor="divider">
+            <Box p={2} bgcolor="background.paper" borderBottom={1} borderColor="divider" sx={{ width: '100%', maxWidth: '100%' }}>
                 <Stack
                     direction={{ xs: 'column', sm: 'row' }}
                     spacing={1}
@@ -381,7 +383,23 @@ function NoteEditor() {
                     flexDirection: 'column',
                     bgcolor: 'background.default',
                     height: isMindMap ? 'calc(100vh - 160px)' : 'calc(100vh - 140px)',
-                    overflow: 'hidden'
+                    overflow: 'hidden',
+                    width: '100%',
+                    maxWidth: '100%',
+                    '& > *': { // Apply to all direct children (editors)
+                        width: '100%',
+                        maxWidth: '100%',
+                        height: '100%',
+                        maxHeight: '100%',
+                        overflow: 'hidden'
+                    },
+                    // Mobile-specific adjustments
+                    '@media (max-width: 600px)': {
+                        height: 'calc(100vh - 120px)',
+                        '& > *': {
+                            maxHeight: 'calc(100vh - 120px)'
+                        }
+                    }
                 }}
             >
                 {renderEditor()}
