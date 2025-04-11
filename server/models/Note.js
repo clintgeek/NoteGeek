@@ -18,7 +18,7 @@ const NoteSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ['text', 'markdown', 'code', 'mindmap'],
+      enum: ['text', 'markdown', 'code', 'mindmap', 'handwritten'],
       default: 'text',
     },
     tags: {

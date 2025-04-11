@@ -6,6 +6,7 @@ import useAuthStore from '../store/authStore';
 import NoteViewer from '../components/NoteViewer';
 import NoteEditor from '../components/NoteEditor';
 import Sidebar from '../components/Sidebar';
+import { NOTE_TYPES } from '../components/NoteEditor';
 
 function NotePage() {
     const { id } = useParams();
@@ -193,8 +194,8 @@ function NotePage() {
 
     // For mind maps, always show the editor (even in view mode)
     // This is because mind maps are inherently interactive
-    if (noteToDisplay && noteToDisplay.type === 'mindmap') {
-        console.log("Rendering mind map editor for note:", noteToDisplay._id);
+    if (noteToDisplay && (noteToDisplay.type === 'mindmap' || noteToDisplay.type === 'handwritten')) {
+        console.log(`Rendering ${noteToDisplay.type} editor for note:`, noteToDisplay._id);
         return renderEditor();
     }
 

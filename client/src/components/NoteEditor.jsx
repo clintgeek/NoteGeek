@@ -4,6 +4,7 @@ import MarkdownEditor from './editors/MarkdownEditor';
 import CodeEditor from './editors/CodeEditor';
 import MindMapEditor from './editors/MindMapEditor';
 import RichTextEditor from './editors/RichTextEditor';
+import HandwrittenEditor from './editors/HandwrittenEditor';
 import { DeleteOutline, Save, Edit, Cancel } from '@mui/icons-material';
 import { useNavigate, useParams } from 'react-router-dom';
 import useNoteStore from '../store/noteStore';
@@ -16,7 +17,8 @@ export const NOTE_TYPES = {
     TEXT: 'text',
     MARKDOWN: 'markdown',
     CODE: 'code',
-    MINDMAP: 'mindmap'
+    MINDMAP: 'mindmap',
+    HANDWRITTEN: 'handwritten'
 };
 
 function NoteEditor() {
@@ -59,6 +61,11 @@ function NoteEditor() {
 
     // Handle content changes
     const handleContentChange = (newContent) => {
+        console.log('NoteEditor - Content changed, type:', noteType);
+        console.log('NoteEditor - New content length:', newContent?.length || 0);
+        if (noteType === NOTE_TYPES.HANDWRITTEN) {
+            console.log('NoteEditor - Handwritten content first 100 chars:', newContent?.substring(0, 100));
+        }
         setContent(newContent);
     };
 
@@ -241,15 +248,16 @@ function NoteEditor() {
                     setContent={handleContentChange}
                     readOnly={!isEditMode}
                 />;
-            case NOTE_TYPES.TEXT:
-                console.log("Rendering Rich Text editor");
-                return <RichTextEditor
+            case NOTE_TYPES.HANDWRITTEN:
+                console.log("Rendering Handwritten editor");
+                return <HandwrittenEditor
                     content={content}
                     setContent={handleContentChange}
-                    isLoading={isLoadingSelected}
+                    readOnly={!isEditMode}
                 />;
+            case NOTE_TYPES.TEXT:
             default:
-                console.log("Defaulting to Rich Text editor");
+                console.log("Rendering Rich Text editor");
                 return <RichTextEditor
                     content={content}
                     setContent={handleContentChange}

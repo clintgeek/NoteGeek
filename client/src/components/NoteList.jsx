@@ -50,9 +50,9 @@ function NoteList({ tag, prefix }) {
     if (notes.length === 0) {
         return (
             <Box sx={{ width: '100%', textAlign: 'center', py: 4 }}>
-                <Typography color="text.secondary">
-                    No notes found. Create one!
-                </Typography>
+            <Typography color="text.secondary">
+                No notes found. Create one!
+            </Typography>
             </Box>
         );
     }

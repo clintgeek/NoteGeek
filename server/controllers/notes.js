@@ -36,9 +36,9 @@ export const createNote = async (req, res) => {
   }
 
   // Validate type if provided
-  const validTypes = ['text', 'markdown', 'code', 'mindmap'];
+  const validTypes = ['text', 'markdown', 'code', 'mindmap', 'handwritten'];
   if (type && !validTypes.includes(type)) {
-    return res.status(400).json({ message: 'Invalid note type. Must be one of: text, markdown, code, mindmap' });
+    return res.status(400).json({ message: 'Invalid note type. Must be one of: text, markdown, code, mindmap, handwritten' });
   }
 
   // Handle lock password if note is to be locked
@@ -165,9 +165,9 @@ export const updateNote = async (req, res) => {
   }
 
   // Validate type if provided
-  const validTypes = ['text', 'markdown', 'code', 'mindmap'];
+  const validTypes = ['text', 'markdown', 'code', 'mindmap', 'handwritten'];
   if (type && !validTypes.includes(type)) {
-    return res.status(400).json({ message: 'Invalid note type. Must be one of: text, markdown, code, mindmap' });
+    return res.status(400).json({ message: 'Invalid note type. Must be one of: text, markdown, code, mindmap, handwritten' });
   }
 
   try {

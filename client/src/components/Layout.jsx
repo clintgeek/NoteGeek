@@ -158,13 +158,11 @@ function Layout({ children }) {
                     }}
                 >
                     <Container
-                        maxWidth={false}
+                        maxWidth="md"
                         sx={{
                             px: { xs: 1, sm: 2 },
                             width: '100%',
-                            maxWidth: { sm: `calc(800px + ${desktopOpen ? 0 : DRAWER_WIDTH}px)` },
-                            ml: { sm: 0 },
-                            mr: 'auto'
+                            maxWidth: { sm: `calc(100% - ${desktopOpen ? DRAWER_WIDTH : 0}px)` }
                         }}
                     >
                         {children}

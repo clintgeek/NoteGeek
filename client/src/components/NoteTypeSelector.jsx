@@ -5,6 +5,7 @@ import {
     TextFields as TextIcon,
     Code as CodeIcon,
     AccountTree as MindMapIcon,
+    Draw as HandwrittenIcon,
 } from '@mui/icons-material';
 import { NOTE_TYPES } from './NoteEditor';
 
@@ -44,6 +45,12 @@ function NoteTypeSelector({ value, onChange }) {
             <Tooltip title="Mind Map">
                 <ToggleButton value={NOTE_TYPES.MINDMAP} aria-label="mindmap">
                     <MindMapIcon />
+                </ToggleButton>
+            </Tooltip>
+
+            <Tooltip title="Handwritten">
+                <ToggleButton value={NOTE_TYPES.HANDWRITTEN} aria-label="handwritten">
+                    <HandwrittenIcon />
                 </ToggleButton>
             </Tooltip>
         </ToggleButtonGroup>

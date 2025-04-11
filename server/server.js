@@ -5,12 +5,14 @@ import morgan from 'morgan';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import connectDB from './config/db.js'; // Import database connection
-
-// Import route files
-import authRoutes from './routes/auth.js';
+import { notFound, errorHandler } from './middleware/errorMiddleware.js';
 import noteRoutes from './routes/notes.js'; // Import note routes
 import tagRoutes from './routes/tags.js'; // Import tag routes
 import searchRoutes from './routes/search.js'; // Import search routes
+import { protect } from './middleware/authMiddleware.js';
+
+// Import route files
+import authRoutes from './routes/auth.js';
 
 // Load environment variables
 // Get the directory name of the current module
@@ -35,6 +37,10 @@ const allowedOrigins = [
   'https://notegeek.clintgeek.com',  // Production domain
   'http://192.168.1.26:5173'  // Local network access
 ];
+
+// Body parser middleware - MUST come before request logging
+app.use(express.json({ limit: '50mb' })); // Parse JSON request bodies
+app.use(express.urlencoded({ limit: '50mb', extended: true })); // Parse URL-encoded request bodies
 
 app.use(cors({
   origin: function(origin, callback) {
@@ -70,13 +76,18 @@ app.use((req, res, next) => {
   console.log('Request Origin:', req.get('Origin'));
   console.log('Request Method:', req.method);
   console.log('Request Headers:', req.headers);
-  console.log('Request Body:', req.body);
+  // Only log body for non-binary requests
+  if (req.headers['content-type'] && !req.headers['content-type'].includes('image')) {
+    console.log('Request Body:', req.body);
+  } else {
+    console.log('Request Body: [Binary or Image data]');
+  }
   next();
 });
 
 // Other Middleware
-app.use(express.json()); // Parse JSON request bodies
-app.use(express.urlencoded({ extended: false })); // Parse URL-encoded request bodies
+app.use(express.json({ limit: '50mb' })); // Parse JSON request bodies
+app.use(express.urlencoded({ limit: '50mb', extended: true })); // Parse URL-encoded request bodies
 
 // HTTP request logger middleware (only in development)
 if (process.env.NODE_ENV === 'development') {
@@ -85,7 +96,7 @@ if (process.env.NODE_ENV === 'development') {
 
 // Mount Routers
 app.use('/api/auth', authRoutes);
-app.use('/api/notes', noteRoutes);
+app.use('/api/notes', protect, noteRoutes);
 app.use('/api/tags', tagRoutes);
 app.use('/api/search', searchRoutes);
 
@@ -136,3 +147,5 @@ if (compareVersions(process.version.substring(1), requiredNodeVersion) < 0) {
 app.listen(PORT, () => {
   console.log(`Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
 });
+
+export default app;
