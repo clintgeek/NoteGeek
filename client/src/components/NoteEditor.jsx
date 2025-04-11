@@ -389,9 +389,16 @@ function NoteEditor() {
 
             <DeleteNoteDialog
                 open={isDeleteDialogOpen}
-                onClose={() => setIsDeleteDialogOpen(false)}
-                noteId={savedNoteId || id}
+                onClose={() => {
+                    setIsDeleteDialogOpen(false);
+                    // For unsaved notes, just navigate back to the notes list
+                    if (!savedNoteId || id === 'new') {
+                        navigate('/');
+                    }
+                }}
+                noteId={savedNoteId}
                 noteTitle={title}
+                isUnsavedNote={!savedNoteId || id === 'new'}
             />
         </Paper>
     );

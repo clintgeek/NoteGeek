@@ -10,12 +10,19 @@ import {
 import { useNavigate } from 'react-router-dom';
 import useNoteStore from '../store/noteStore';
 
-function DeleteNoteDialog({ open, onClose, noteId, noteTitle }) {
+function DeleteNoteDialog({ open, onClose, noteId, noteTitle, isUnsavedNote }) {
   const navigate = useNavigate();
   const deleteNote = useNoteStore(state => state.deleteNote);
 
   const handleDelete = async () => {
     try {
+      // For unsaved notes, just close the dialog and let the onClose handler navigate
+      if (isUnsavedNote) {
+        onClose();
+        return;
+      }
+
+      // For saved notes, attempt to delete from the database
       const success = await deleteNote(noteId);
       if (success) {
         onClose();
@@ -38,8 +45,11 @@ function DeleteNoteDialog({ open, onClose, noteId, noteTitle }) {
       </DialogTitle>
       <DialogContent>
         <DialogContentText id="delete-note-dialog-description">
-          Are you sure you want to delete <strong>{noteTitle || 'this note'}</strong>?
-          This action cannot be undone.
+          {isUnsavedNote ? (
+            "Are you sure you want to discard this unsaved note?"
+          ) : (
+            `Are you sure you want to delete ${noteTitle || 'this note'}? This action cannot be undone.`
+          )}
         </DialogContentText>
       </DialogContent>
       <DialogActions>
@@ -47,7 +57,7 @@ function DeleteNoteDialog({ open, onClose, noteId, noteTitle }) {
           Cancel
         </Button>
         <Button onClick={handleDelete} color="error" autoFocus>
-          Delete
+          {isUnsavedNote ? 'Discard' : 'Delete'}
         </Button>
       </DialogActions>
     </Dialog>
