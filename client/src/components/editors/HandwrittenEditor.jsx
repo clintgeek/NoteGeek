@@ -1,101 +1,54 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import SignatureCanvas from 'react-signature-canvas';
-import {
-    Box,
-    IconButton,
-    Stack,
-    Tooltip,
-    useTheme,
-    useMediaQuery,
-} from '@mui/material';
-import {
-    Delete as DeleteIcon,
-    Undo as UndoIcon,
-    Save as SaveIcon,
-    Brush as BrushIcon,
-    FormatColorFill as ColorIcon,
-    Edit as EditIcon
-} from '@mui/icons-material';
+import { Box, IconButton } from '@mui/material';
+import { UndoRounded, DeleteOutline } from '@mui/icons-material';
 
-const HandwrittenEditor = ({ content, setContent, readOnly }) => {
-    const theme = useTheme();
-    const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-    const sigCanvas = useRef(null);
+const HandwrittenEditor = ({ content, setContent, readOnly = false }) => {
+    const [canvasWidth, setCanvasWidth] = useState(100);
     const containerRef = useRef(null);
-    const [color, setColor] = useState('#000000');
-    const [penSize, setPenSize] = useState(2);
-    const [touchCount, setTouchCount] = useState(0);
-    const canvasHeight = isMobile ? window.innerHeight - 200 : 2000; // Adjust height for mobile
+    const sigCanvas = useRef(null);
+    const resizeObserver = useRef(null);
+    const canvasHeight = 2000;
 
     useEffect(() => {
-        if (content && sigCanvas.current && !readOnly) {
-            try {
-                sigCanvas.current.fromDataURL(content);
-            } catch (error) {
-                console.error('HandwrittenEditor - Error loading content:', error);
-            }
-        }
-    }, [content, readOnly]);
-
-    useEffect(() => {
-        const handleTouchStart = (e) => {
-            setTouchCount(e.touches.length);
-            if (e.touches.length === 2) {
-                e.preventDefault();
-                if (sigCanvas.current) {
-                    sigCanvas.current.off();
-                }
+        const updateCanvasWidth = () => {
+            if (containerRef.current) {
+                const newWidth = containerRef.current.offsetWidth;
+                setCanvasWidth(newWidth);
             }
         };
 
-        const handleTouchEnd = (e) => {
-            setTouchCount(e.touches.length);
-            if (e.touches.length < 2 && !readOnly) {
-                if (sigCanvas.current) {
-                    sigCanvas.current.on();
-                }
-            }
-        };
-
-        const container = containerRef.current;
-        if (container) {
-            container.addEventListener('touchstart', handleTouchStart, { passive: false });
-            container.addEventListener('touchend', handleTouchEnd);
-            container.addEventListener('touchcancel', handleTouchEnd);
+        resizeObserver.current = new ResizeObserver(updateCanvasWidth);
+        if (containerRef.current) {
+            resizeObserver.current.observe(containerRef.current);
         }
+
+        updateCanvasWidth();
 
         return () => {
-            if (container) {
-                container.removeEventListener('touchstart', handleTouchStart);
-                container.removeEventListener('touchend', handleTouchEnd);
-                container.removeEventListener('touchcancel', handleTouchEnd);
+            if (resizeObserver.current) {
+                resizeObserver.current.disconnect();
             }
         };
-    }, [readOnly]);
+    }, []);
 
     useEffect(() => {
-        // Handle window resize for mobile
-        const handleResize = () => {
-            if (isMobile && sigCanvas.current) {
-                const canvas = sigCanvas.current.getCanvas();
-                const container = containerRef.current;
-                if (canvas && container) {
-                    canvas.width = container.clientWidth;
-                    canvas.style.width = '100%';
-                }
-            }
-        };
-
-        window.addEventListener('resize', handleResize);
-        handleResize(); // Initial resize
-
-        return () => window.removeEventListener('resize', handleResize);
-    }, [isMobile]);
+        if (content && sigCanvas.current) {
+            sigCanvas.current.fromDataURL(content);
+        }
+    }, [content]);
 
     const handleClear = () => {
         if (sigCanvas.current) {
             sigCanvas.current.clear();
             setContent('');
+        }
+    };
+
+    const handleUndo = () => {
+        if (sigCanvas.current) {
+            sigCanvas.current.undo();
+            setContent(sigCanvas.current.toDataURL());
         }
     };
 
@@ -106,196 +59,76 @@ const HandwrittenEditor = ({ content, setContent, readOnly }) => {
         }
     };
 
-    const handleUndo = () => {
-        if (sigCanvas.current) {
-            const data = sigCanvas.current.toData();
-            if (data && data.length > 0) {
-                data.pop();
-                sigCanvas.current.fromData(data);
-                handleSave();
-            }
+    const handleTouchStart = (e) => {
+        if (e.touches.length === 2) {
+            e.preventDefault();
         }
     };
 
-    // If in read-only mode, just display the content as an image
-    if (readOnly) {
-        return (
-            <Box
-                sx={{
-                    width: '100%',
-                    height: '100%',
-                    position: 'relative',
-                    overflow: 'auto',
-                    bgcolor: '#fff'
-                }}
-            >
-                <Box
-                    sx={{
-                        width: '100%',
-                        minHeight: '100%',
-                        position: 'relative'
-                    }}
-                >
-                    {/* Paper Background */}
-                    <Box
-                        sx={{
-                            position: 'absolute',
-                            top: 0,
-                            left: 0,
-                            right: 0,
-                            height: '100%',
-                            backgroundImage: 'linear-gradient(#e3e3e3 1px, transparent 1px)',
-                            backgroundSize: '100% 20px',
-                            opacity: 0.5,
-                            pointerEvents: 'none'
-                        }}
-                    />
-                    <Box
-                        component="img"
-                        src={content}
-                        alt="Handwritten note"
-                        sx={{
-                            width: '100%',
-                            height: 'auto',
-                            display: 'block'
-                        }}
-                    />
-                </Box>
-            </Box>
-        );
-    }
+    const handleTouchMove = (e) => {
+        if (e.touches.length === 2) {
+            e.preventDefault();
+        }
+    };
 
     return (
         <Box
             ref={containerRef}
             sx={{
                 width: '100%',
-                maxWidth: '100%',
                 height: '100%',
-                display: 'flex',
-                flexDirection: 'column',
-                overflow: touchCount === 2 ? 'auto' : 'hidden',
+                overflow: 'auto',
+                position: 'relative',
                 bgcolor: '#fff',
-                touchAction: touchCount === 2 ? 'pan-y' : 'none'
+                touchAction: 'none'
             }}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
         >
-            {/* Toolbar */}
-            <Stack
-                direction="row"
-                spacing={1}
-                alignItems="center"
-                justifyContent="space-between"
-                sx={{
-                    p: 1,
-                    borderBottom: 1,
-                    borderColor: 'divider',
-                    bgcolor: 'background.paper',
-                    width: '100%',
-                    maxWidth: '100%',
-                    flexShrink: 0
-                }}
-            >
-                {/* Color Picker */}
-                <input
-                    type="color"
-                    value={color}
-                    onChange={(e) => {
-                        setColor(e.target.value);
-                        if (sigCanvas.current) {
-                            sigCanvas.current.penColor = e.target.value;
-                        }
-                    }}
-                    style={{ width: 40, height: 40, padding: 0, border: 'none' }}
-                />
-
-                {/* Pen Size Buttons */}
-                <Stack direction="row" spacing={0.5}>
-                    {[1, 2, 3, 4].map((size) => (
-                        <Tooltip key={size} title={`Size: ${size}`}>
-                            <IconButton
-                                size="small"
-                                onClick={() => {
-                                    setPenSize(size);
-                                    if (sigCanvas.current) {
-                                        sigCanvas.current.penSize = size;
-                                    }
-                                }}
-                                sx={{
-                                    bgcolor: penSize === size ? 'action.selected' : 'transparent',
-                                    '&:hover': { bgcolor: 'action.hover' },
-                                    padding: isMobile ? '4px' : '8px'
-                                }}
-                            >
-                                <BrushIcon sx={{ fontSize: 12 + size * 2 }} />
-                            </IconButton>
-                        </Tooltip>
-                    ))}
-                </Stack>
-
-                {/* Action Buttons */}
-                <Stack direction="row" spacing={0.5}>
-                    <Tooltip title="Undo">
-                        <IconButton onClick={handleUndo} size="small">
-                            <UndoIcon fontSize="small" />
-                        </IconButton>
-                    </Tooltip>
-                    <Tooltip title="Clear">
-                        <IconButton onClick={handleClear} size="small" color="error">
-                            <DeleteIcon fontSize="small" />
-                        </IconButton>
-                    </Tooltip>
-                    <Tooltip title="Save">
-                        <IconButton onClick={handleSave} size="small" color="primary">
-                            <SaveIcon fontSize="small" />
-                        </IconButton>
-                    </Tooltip>
-                </Stack>
-            </Stack>
-
-            {/* Canvas Container */}
-            <Box
-                sx={{
-                    position: 'relative',
-                    flexGrow: 1,
-                    width: '100%',
-                    maxWidth: '100%',
-                    height: isMobile ? `${canvasHeight}px` : '100%',
-                    overflow: touchCount === 2 ? 'auto' : 'hidden'
-                }}
-            >
-                {/* Paper Background */}
-                <Box
-                    sx={{
+            <SignatureCanvas
+                ref={sigCanvas}
+                canvasProps={{
+                    width: canvasWidth,
+                    height: canvasHeight,
+                    style: {
+                        width: '100%',
+                        height: '100%',
                         position: 'absolute',
                         top: 0,
                         left: 0,
-                        right: 0,
-                        height: canvasHeight,
-                        backgroundImage: 'linear-gradient(#e3e3e3 1px, transparent 1px)',
-                        backgroundSize: '100% 20px',
-                        opacity: 0.5,
-                        pointerEvents: 'none'
+                        touchAction: 'none',
+                        cursor: readOnly ? 'default' : 'crosshair',
+                    }
+                }}
+                backgroundColor="rgb(255,255,255)"
+                dotSize={1.5}
+                minWidth={1.5}
+                maxWidth={3}
+                throttle={16}
+                minDistance={1}
+                onEnd={handleSave}
+            />
+            {!readOnly && (
+                <Box
+                    sx={{
+                        position: 'absolute',
+                        top: 8,
+                        right: 8,
+                        display: 'flex',
+                        gap: 1,
+                        bgcolor: 'rgba(255,255,255,0.8)',
+                        borderRadius: 1,
+                        p: 0.5
                     }}
-                />
-                <SignatureCanvas
-                    ref={sigCanvas}
-                    canvasProps={{
-                        className: 'signature-canvas',
-                        style: {
-                            width: '100%',
-                            maxWidth: '100%',
-                            height: canvasHeight,
-                            touchAction: touchCount === 2 ? 'pan-y' : 'none'
-                        }
-                    }}
-                    backgroundColor="rgba(0,0,0,0)"
-                    penColor={color}
-                    minWidth={0.5}
-                    maxWidth={4}
-                    throttle={16}
-                    onEnd={handleSave}
-                />
-            </Box>
+                >
+                    <IconButton onClick={handleUndo} size="small">
+                        <UndoRounded />
+                    </IconButton>
+                    <IconButton onClick={handleClear} size="small">
+                        <DeleteOutline />
+                    </IconButton>
+                </Box>
+            )}
         </Box>
     );
 };

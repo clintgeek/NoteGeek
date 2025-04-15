@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Box, TextField, Button, CircularProgress, Typography, Paper, IconButton, Stack } from '@mui/material';
+import { Box, TextField, Button, CircularProgress, Typography, Stack, IconButton } from '@mui/material';
 import MarkdownEditor from './editors/MarkdownEditor';
 import CodeEditor from './editors/CodeEditor';
 import MindMapEditor from './editors/MindMapEditor';
@@ -262,25 +262,40 @@ function NoteEditor() {
     };
 
     return (
-        <Paper
-            elevation={0}
+        <Box
             sx={{
                 height: '100%',
                 width: '100%',
                 maxWidth: '100%',
                 display: 'flex',
                 flexDirection: 'column',
-                borderRadius: 0,
                 overflow: 'hidden',
-                ...(isMindMap && {
-                    position: 'relative',
-                    flexGrow: 1,
-                    overflow: 'hidden',
-                    maxHeight: noteToEdit?.type === 'mindmap' ? 'calc(100vh - 100px)' : 'auto'
-                })
+                '@media (max-width: 600px)': {
+                    margin: 0,
+                    padding: 0,
+                    borderRadius: 0,
+                    bgcolor: '#fff'
+                },
+                '@media (min-width: 601px)': {
+                    bgcolor: 'background.paper',
+                    boxShadow: '0px 2px 4px -1px rgba(0,0,0,0.1), 0px 4px 5px 0px rgba(0,0,0,0.07), 0px 1px 10px 0px rgba(0,0,0,0.06)'
+                }
             }}
         >
-            <Box p={2} bgcolor="background.paper" borderBottom={1} borderColor="divider" sx={{ width: '100%', maxWidth: '100%' }}>
+            <Box
+                p={{ xs: 1, sm: 2 }}
+                bgcolor="background.paper"
+                borderBottom={1}
+                borderColor="divider"
+                sx={{
+                    width: '100%',
+                    maxWidth: '100%',
+                    '@media (max-width: 600px)': {
+                        px: 1,
+                        py: 1
+                    }
+                }}
+            >
                 <Stack
                     direction={{ xs: 'column', sm: 'row' }}
                     spacing={1}
@@ -386,18 +401,17 @@ function NoteEditor() {
                     overflow: 'hidden',
                     width: '100%',
                     maxWidth: '100%',
-                    '& > *': { // Apply to all direct children (editors)
+                    '& > *': {
                         width: '100%',
                         maxWidth: '100%',
                         height: '100%',
                         maxHeight: '100%',
                         overflow: 'hidden'
                     },
-                    // Mobile-specific adjustments
                     '@media (max-width: 600px)': {
-                        height: 'calc(100vh - 120px)',
+                        height: 'calc(100vh - 110px)',
                         '& > *': {
-                            maxHeight: 'calc(100vh - 120px)'
+                            maxHeight: 'calc(100vh - 110px)'
                         }
                     }
                 }}
@@ -409,7 +423,6 @@ function NoteEditor() {
                 open={isDeleteDialogOpen}
                 onClose={() => {
                     setIsDeleteDialogOpen(false);
-                    // For unsaved notes, just navigate back to the notes list
                     if (!savedNoteId || id === 'new') {
                         navigate('/');
                     }
@@ -418,7 +431,7 @@ function NoteEditor() {
                 noteTitle={title}
                 isUnsavedNote={!savedNoteId || id === 'new'}
             />
-        </Paper>
+        </Box>
     );
 }
 
