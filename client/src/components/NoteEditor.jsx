@@ -274,7 +274,14 @@ function NoteEditor() {
                     margin: 0,
                     padding: 0,
                     borderRadius: 0,
-                    bgcolor: '#fff'
+                    bgcolor: '#fff',
+                    position: 'fixed',
+                    top: -30,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    width: '100vw',
+                    height: '100vh'
                 },
                 '@media (min-width: 601px)': {
                     bgcolor: 'background.paper',
@@ -291,14 +298,22 @@ function NoteEditor() {
                     width: '100%',
                     maxWidth: '100%',
                     '@media (max-width: 600px)': {
-                        px: 1,
-                        py: 1
+                        px: 2,
+                        py: 1.5,
+                        position: 'fixed',
+                        top: 56, // Account for the page menu height
+                        left: 0,
+                        right: 0,
+                        zIndex: 1,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 1
                     }
                 }}
             >
                 <Stack
                     direction={{ xs: 'column', sm: 'row' }}
-                    spacing={1}
+                    spacing={{ xs: 1.5, sm: 1 }}
                     alignItems={{ xs: 'stretch', sm: 'center' }}
                     sx={{ width: '100%' }}
                 >
@@ -356,6 +371,23 @@ function NoteEditor() {
                             alignItems: 'center'
                         }}
                     >
+                        {/* Edit/View toggle for mind maps */}
+                        {isMindMap && id !== 'new' && savedNoteId && (
+                            <Button
+                                variant={isEditMode ? "outlined" : "contained"}
+                                color="primary"
+                                startIcon={isEditMode ? <Cancel /> : <Edit />}
+                                onClick={() => setIsEditMode(!isEditMode)}
+                                size="small"
+                                sx={{
+                                    minWidth: '80px',
+                                    flex: { xs: 1, sm: 'none' }
+                                }}
+                            >
+                                {isEditMode ? 'Cancel' : 'Edit'}
+                            </Button>
+                        )}
+
                         {/* Save button - only show in edit mode for mind maps */}
                         {(isEditMode || !isMindMap) && (
                             <Button
@@ -401,18 +433,20 @@ function NoteEditor() {
                     overflow: 'hidden',
                     width: '100%',
                     maxWidth: '100%',
+                    '@media (max-width: 600px)': {
+                        height: 'calc(100vh - 246px)', // Account for page menu (56px) + editor header (140px) + editor toolbar (50px)
+                        marginTop: '196px', // Push content below both headers
+                        paddingTop: '50px', // Add padding for the editor toolbar
+                        '& > *': {
+                            maxHeight: 'calc(100vh - 246px)'
+                        }
+                    },
                     '& > *': {
                         width: '100%',
                         maxWidth: '100%',
                         height: '100%',
                         maxHeight: '100%',
                         overflow: 'hidden'
-                    },
-                    '@media (max-width: 600px)': {
-                        height: 'calc(100vh - 110px)',
-                        '& > *': {
-                            maxHeight: 'calc(100vh - 110px)'
-                        }
                     }
                 }}
             >

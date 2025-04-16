@@ -4,39 +4,81 @@ import { Box, IconButton } from '@mui/material';
 import { UndoRounded, DeleteOutline } from '@mui/icons-material';
 
 const HandwrittenEditor = ({ content, setContent, readOnly = false }) => {
-    const [canvasWidth, setCanvasWidth] = useState(100);
     const containerRef = useRef(null);
     const sigCanvas = useRef(null);
-    const resizeObserver = useRef(null);
-    const canvasHeight = 2000;
+    const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+    const [isRestoring, setIsRestoring] = useState(false);
 
+    const setupCanvas = () => {
+        if (!sigCanvas.current || !containerRef.current) return;
+
+        const container = containerRef.current;
+        const canvas = sigCanvas.current.getCanvas();
+        const newWidth = container.clientWidth;
+        const newHeight = container.clientHeight;
+
+        if (newWidth === 0 || newHeight === 0) return;
+        if (newWidth === canvas.width && newHeight === canvas.height) return;
+
+        canvas.width = newWidth;
+        canvas.height = newHeight;
+
+        // Override the signature pad's internal point calculation
+        const signaturePad = sigCanvas.current;
+        const originalPointToCanvas = signaturePad._createPoint;
+        signaturePad._createPoint = function(event) {
+            const canvasRect = canvas.getBoundingClientRect();
+            const point = originalPointToCanvas.call(this, event);
+            const touch = event.touches ? event.touches[0] : event;
+
+            point.x = touch.clientX - canvasRect.left;
+            point.y = touch.clientY - canvasRect.top;
+
+            return point;
+        };
+
+        return { width: newWidth, height: newHeight };
+    };
+
+    // Handle initial setup and dimension changes
     useEffect(() => {
-        const updateCanvasWidth = () => {
-            if (containerRef.current) {
-                const newWidth = containerRef.current.offsetWidth;
-                setCanvasWidth(newWidth);
-            }
-        };
-
-        resizeObserver.current = new ResizeObserver(updateCanvasWidth);
-        if (containerRef.current) {
-            resizeObserver.current.observe(containerRef.current);
+        const newDimensions = setupCanvas();
+        if (newDimensions && (newDimensions.width !== dimensions.width || newDimensions.height !== dimensions.height)) {
+            setDimensions(newDimensions);
         }
-
-        updateCanvasWidth();
-
-        return () => {
-            if (resizeObserver.current) {
-                resizeObserver.current.disconnect();
-            }
-        };
     }, []);
 
+    // Handle content changes
     useEffect(() => {
-        if (content && sigCanvas.current) {
-            sigCanvas.current.fromDataURL(content);
-        }
+        if (!sigCanvas.current || !content || isRestoring) return;
+
+        setIsRestoring(true);
+        const canvas = sigCanvas.current.getCanvas();
+
+        const img = new Image();
+        img.onload = () => {
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            setIsRestoring(false);
+        };
+        img.src = content;
     }, [content]);
+
+    // Add resize observer
+    useEffect(() => {
+        if (!containerRef.current) return;
+
+        const observer = new ResizeObserver(() => {
+            const newDimensions = setupCanvas();
+            if (newDimensions) {
+                setDimensions(newDimensions);
+            }
+        });
+
+        observer.observe(containerRef.current);
+        return () => observer.disconnect();
+    }, []);
 
     const handleClear = () => {
         if (sigCanvas.current) {
@@ -54,20 +96,9 @@ const HandwrittenEditor = ({ content, setContent, readOnly = false }) => {
 
     const handleSave = () => {
         if (sigCanvas.current) {
-            const dataUrl = sigCanvas.current.toDataURL();
+            const canvas = sigCanvas.current.getCanvas();
+            const dataUrl = canvas.toDataURL();
             setContent(dataUrl);
-        }
-    };
-
-    const handleTouchStart = (e) => {
-        if (e.touches.length === 2) {
-            e.preventDefault();
-        }
-    };
-
-    const handleTouchMove = (e) => {
-        if (e.touches.length === 2) {
-            e.preventDefault();
         }
     };
 
@@ -77,33 +108,31 @@ const HandwrittenEditor = ({ content, setContent, readOnly = false }) => {
             sx={{
                 width: '100%',
                 height: '100%',
-                overflow: 'auto',
                 position: 'relative',
                 bgcolor: '#fff',
-                touchAction: 'none'
+                touchAction: 'none',
+                '& canvas': {
+                    width: '100% !important',
+                    height: '100% !important',
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    transform: 'none !important'
+                }
             }}
-            onTouchStart={handleTouchStart}
-            onTouchMove={handleTouchMove}
         >
             <SignatureCanvas
                 ref={sigCanvas}
                 canvasProps={{
-                    width: canvasWidth,
-                    height: canvasHeight,
                     style: {
-                        width: '100%',
-                        height: '100%',
-                        position: 'absolute',
-                        top: 0,
-                        left: 0,
                         touchAction: 'none',
-                        cursor: readOnly ? 'default' : 'crosshair',
+                        cursor: readOnly ? 'default' : 'crosshair'
                     }
                 }}
                 backgroundColor="rgb(255,255,255)"
-                dotSize={1.5}
-                minWidth={1.5}
-                maxWidth={3}
+                dotSize={1}
+                minWidth={1}
+                maxWidth={2}
                 throttle={16}
                 minDistance={1}
                 onEnd={handleSave}
@@ -111,14 +140,15 @@ const HandwrittenEditor = ({ content, setContent, readOnly = false }) => {
             {!readOnly && (
                 <Box
                     sx={{
-                        position: 'absolute',
-                        top: 8,
+                        position: 'fixed',
+                        top: 150,
                         right: 8,
                         display: 'flex',
                         gap: 1,
                         bgcolor: 'rgba(255,255,255,0.8)',
                         borderRadius: 1,
-                        p: 0.5
+                        p: 0.5,
+                        zIndex: 1
                     }}
                 >
                     <IconButton onClick={handleUndo} size="small">
