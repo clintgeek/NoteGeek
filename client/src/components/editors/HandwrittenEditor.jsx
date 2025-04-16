@@ -3,11 +3,15 @@ import SignatureCanvas from 'react-signature-canvas';
 import { Box, IconButton } from '@mui/material';
 import { UndoRounded, DeleteOutline } from '@mui/icons-material';
 
+const CANVAS_HEIGHT = 10000; // Very large height for "infinite" scrolling
+
 const HandwrittenEditor = ({ content, setContent, readOnly = false }) => {
     const containerRef = useRef(null);
     const sigCanvas = useRef(null);
-    const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+    const [dimensions, setDimensions] = useState({ width: 0, height: CANVAS_HEIGHT });
     const [isRestoring, setIsRestoring] = useState(false);
+    const [isTwoFinger, setIsTwoFinger] = useState(false);
+    const lastTouchY = useRef(0);
 
     const setupCanvas = () => {
         if (!sigCanvas.current || !containerRef.current) return;
@@ -15,13 +19,12 @@ const HandwrittenEditor = ({ content, setContent, readOnly = false }) => {
         const container = containerRef.current;
         const canvas = sigCanvas.current.getCanvas();
         const newWidth = container.clientWidth;
-        const newHeight = container.clientHeight;
 
-        if (newWidth === 0 || newHeight === 0) return;
-        if (newWidth === canvas.width && newHeight === canvas.height) return;
+        if (newWidth === 0) return;
+        if (newWidth === canvas.width && canvas.height === CANVAS_HEIGHT) return;
 
         canvas.width = newWidth;
-        canvas.height = newHeight;
+        canvas.height = CANVAS_HEIGHT;
 
         // Override the signature pad's internal point calculation
         const signaturePad = sigCanvas.current;
@@ -30,14 +33,15 @@ const HandwrittenEditor = ({ content, setContent, readOnly = false }) => {
             const canvasRect = canvas.getBoundingClientRect();
             const point = originalPointToCanvas.call(this, event);
             const touch = event.touches ? event.touches[0] : event;
+            const scrollTop = container.scrollTop;
 
             point.x = touch.clientX - canvasRect.left;
-            point.y = touch.clientY - canvasRect.top;
+            point.y = touch.clientY - canvasRect.top + scrollTop;
 
             return point;
         };
 
-        return { width: newWidth, height: newHeight };
+        return { width: newWidth, height: CANVAS_HEIGHT };
     };
 
     // Handle initial setup and dimension changes
@@ -102,22 +106,73 @@ const HandwrittenEditor = ({ content, setContent, readOnly = false }) => {
         }
     };
 
+    const handleTouchStart = (e) => {
+        if (e.touches.length === 2) {
+            e.preventDefault();
+            setIsTwoFinger(true);
+            // Disable the canvas completely during two-finger scrolling
+            if (sigCanvas.current) {
+                sigCanvas.current.off();
+            }
+            lastTouchY.current = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+        } else if (e.touches.length === 1 && !isTwoFinger) {
+            // Re-enable the canvas for drawing
+            if (sigCanvas.current) {
+                sigCanvas.current.on();
+            }
+        }
+    };
+
+    const handleTouchMove = (e) => {
+        if (e.touches.length === 2) {
+            e.preventDefault();
+            const container = containerRef.current;
+            const currentY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+            const deltaY = currentY - lastTouchY.current;
+            container.scrollTop -= deltaY;
+            lastTouchY.current = currentY;
+        }
+    };
+
+    const handleTouchEnd = (e) => {
+        if (e.touches.length === 0) {
+            setIsTwoFinger(false);
+            // Re-enable the canvas when all fingers are lifted
+            if (sigCanvas.current) {
+                sigCanvas.current.on();
+            }
+        } else if (e.touches.length === 1) {
+            setIsTwoFinger(false);
+            // Re-enable the canvas when transitioning to one finger
+            if (sigCanvas.current) {
+                sigCanvas.current.on();
+            }
+        }
+    };
+
     return (
         <Box
             ref={containerRef}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
             sx={{
                 width: '100%',
                 height: '100%',
                 position: 'relative',
                 bgcolor: '#fff',
-                touchAction: 'none',
+                touchAction: isTwoFinger ? 'none' : 'pan-y',
+                overflowY: 'auto',
+                overflowX: 'hidden',
                 '& canvas': {
                     width: '100% !important',
-                    height: '100% !important',
+                    height: `${CANVAS_HEIGHT}px !important`,
                     position: 'absolute',
                     top: 0,
                     left: 0,
-                    transform: 'none !important'
+                    transform: 'none !important',
+                    touchAction: 'none',
+                    pointerEvents: isTwoFinger ? 'none' : 'auto'
                 }
             }}
         >
