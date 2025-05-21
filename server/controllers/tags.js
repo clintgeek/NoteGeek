@@ -4,7 +4,7 @@ import Note from '../models/Note.js';
 // @route   GET /api/tags
 // @access  Private
 export const getTags = async (req, res) => {
-  const userId = req.user._id;
+  const userId = req.user.id;
   console.log('Fetching tags for user:', userId);
 
   try {

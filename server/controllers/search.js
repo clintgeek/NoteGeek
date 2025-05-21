@@ -4,7 +4,7 @@ import Note from '../models/Note.js';
 // @route   GET /api/search?q=query
 // @access  Private
 export const searchNotes = async (req, res) => {
-  const userId = req.user._id;
+  const userId = req.user.id;
   const searchQuery = req.query.q;
 
   if (!searchQuery || searchQuery.trim().length === 0) {

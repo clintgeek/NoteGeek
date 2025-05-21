@@ -11,12 +11,12 @@ const generateToken = (user) => {
   }
   return jwt.sign(
     {
-      id: user._id,
+      id: user._id, // Use 'id' instead of '_id' to match GeekBase format
       email: user.email
     },
     process.env.JWT_SECRET,
     {
-    expiresIn: '30d', // Token expires in 30 days
+      expiresIn: '30d', // Token expires in 30 days
     }
   );
 };
@@ -34,7 +34,7 @@ export const registerUser = async (req, res) => {
 
   // Add more robust password validation here if needed (e.g., length, complexity)
   if (password.length < 6) {
-     return res.status(400).json({ message: 'Password must be at least 6 characters long' });
+    return res.status(400).json({ message: 'Password must be at least 6 characters long' });
   }
 
   try {

@@ -26,6 +26,10 @@ import NoteEditor from './components/NoteEditor';
 import NotePage from './pages/NotePage';
 import SearchResults from './components/SearchResults';
 import TagNotesList from './components/TagNotesList';
+import Settings from './pages/Settings';
+
+// Import the AuthCallback component
+import AuthCallback from './components/AuthCallback';
 
 // Create theme
 const theme = createTheme({
@@ -200,43 +204,21 @@ function App() {
     const [isHydrating, setIsHydrating] = useState(true);
 
     useEffect(() => {
-        const initializeAuth = async () => {
-            await hydrateUser();
-            setIsHydrating(false);
-        };
-
-        initializeAuth();
-
-        // Add style to prevent scrolling on mind map pages
-        const style = document.createElement('style');
-        style.textContent = `
-            body.mindmap-view {
-                overflow: hidden;
+        const initAuth = async () => {
+            try {
+                console.log('Initializing authentication...');
+                setIsHydrating(true);
+                const result = await hydrateUser();
+                console.log('Authentication hydration result:', result);
+            } catch (error) {
+                console.error('Authentication hydration error:', error);
+            } finally {
+                setIsHydrating(false);
             }
-        `;
-        document.head.appendChild(style);
-
-        return () => {
-            document.head.removeChild(style);
         };
-    }, [hydrateUser]);
 
-    // Show loading state while hydrating auth
-    if (isHydrating) {
-        return (
-            <ThemeProvider theme={theme}>
-                <CssBaseline />
-                <Box
-                    display="flex"
-                    justifyContent="center"
-                    alignItems="center"
-                    minHeight="100vh"
-                >
-                    <CircularProgress />
-                </Box>
-            </ThemeProvider>
-        );
-    }
+        initAuth();
+    }, [hydrateUser]);
 
     // Protected Route wrapper component
     const ProtectedRoute = ({ children }) => {
@@ -256,24 +238,57 @@ function App() {
 
     return (
         <ThemeProvider theme={theme}>
-            <CssBaseline />
             {globalStyles}
+            <CssBaseline />
             <Router>
-                <Routes>
-                    <Route path="/login" element={!isAuthenticated ? <Login /> : <Navigate to="/" />} />
-                    <Route path="/register" element={!isAuthenticated ? <Register /> : <Navigate to="/" />} />
-                    <Route element={<ProtectedLayout />}>
-                        <Route index element={<NoteList />} />
-                        <Route path="/notes">
-                            <Route path="new" element={<NewNoteWrapper />} />
-                            <Route path=":id" element={<NotePage />} />
-                            <Route path=":id/edit" element={<NotePage />} />
-                        </Route>
-                        <Route path="/search" element={<SearchResults />} />
-                        <Route path="/tags/:tag" element={<TagNotesList />} />
-                        <Route path="*" element={<div>Page Not Found</div>} />
-                    </Route>
-                </Routes>
+                {isHydrating ? (
+                    <Box
+                        display="flex"
+                        justifyContent="center"
+                        alignItems="center"
+                        minHeight="100vh"
+                    >
+                        <CircularProgress />
+                    </Box>
+                ) : (
+                    <Routes>
+                        {/* Public routes */}
+                        <Route path="/login" element={<Login />} />
+                        <Route path="/register" element={<Register />} />
+
+                        {/* Auth callback route for SSO */}
+                        <Route path="/auth/callback" element={<AuthCallback />} />
+
+                        {/* Protected routes */}
+                        <Route
+                            path="/"
+                            element={
+                                isAuthenticated ? (
+                                    <Layout>
+                                        <NoteList />
+                                    </Layout>
+                                ) : (
+                                    <Navigate to="/login" replace />
+                                )
+                            }
+                        />
+
+                        {/* Add other protected routes here */}
+                        {isAuthenticated && (
+                            <>
+                                <Route path="/notes/new" element={<Layout><NewNoteWrapper /></Layout>} />
+                                <Route path="/notes/:id" element={<Layout><NotePage /></Layout>} />
+                                <Route path="/notes/:id/edit" element={<Layout><NoteEditor /></Layout>} />
+                                <Route path="/settings" element={<Layout><Settings /></Layout>} />
+                                <Route path="/tags/:tag" element={<Layout><TagNotesList /></Layout>} />
+                                <Route path="/search" element={<Layout><SearchResults /></Layout>} />
+                                {/* Add other routes as needed */}
+                            </>
+                        )}
+
+                        {/* ... other existing routes ... */}
+                    </Routes>
+                )}
             </Router>
         </ThemeProvider>
     );

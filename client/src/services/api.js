@@ -1,4 +1,5 @@
 import axios from 'axios';
+import useAuthStore from '../store/authStore';
 
 // Define the base URL for the API
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
@@ -17,40 +18,17 @@ const apiClient = axios.create({
     credentials: 'include'
 });
 
-// Add request interceptor for auth token
+// Global request interceptor to attach token
 apiClient.interceptors.request.use(
     (config) => {
-        // Get token from persisted auth store
-        const authStorage = localStorage.getItem('auth-storage');
-        let token = null;
-        if (authStorage) {
-            try {
-                const authState = JSON.parse(authStorage);
-                token = authState.state.token;
-            } catch (e) {
-                console.warn('Failed to parse auth storage:', e);
-            }
-        }
-
-        console.log('API Request - URL:', config.url);
-        console.log('API Request - Method:', config.method);
-        console.log('API Request - Has Token:', !!token);
-        console.log('API Request - Headers:', config.headers);
-
+        const token = useAuthStore.getState().token;
         if (token) {
+            config.headers = config.headers || {};
             config.headers['Authorization'] = `Bearer ${token}`;
-        } else {
-            console.warn('API Request - No auth token found');
         }
-
-        // Ensure CORS headers are properly set
-        config.headers['Access-Control-Allow-Credentials'] = true;
         return config;
     },
-    (error) => {
-        console.error('API Request Error:', error);
-        return Promise.reject(error);
-    }
+    (error) => Promise.reject(error)
 );
 
 // Add response interceptor for auth errors
