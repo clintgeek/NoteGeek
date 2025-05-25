@@ -12,11 +12,9 @@ const protect = async (req, res, next) => {
 
       // Verify token
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      console.log('Decoded token:', decoded);
 
       // Verify this is a NoteGeek token
       if (decoded.app !== 'notegeek') {
-        console.error('Invalid app in token:', decoded.app);
         return res.status(401).json({ message: 'Not authorized, invalid app' });
       }
 
@@ -29,7 +27,7 @@ const protect = async (req, res, next) => {
 
       next();
     } catch (error) {
-      console.error('Auth middleware error:', error);
+      console.error('Auth error:', error.message);
       if (error.name === 'JsonWebTokenError') {
         return res.status(401).json({ message: 'Invalid token' });
       }

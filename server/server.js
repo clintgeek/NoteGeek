@@ -73,14 +73,8 @@ app.use(cors({
 
 // Add request origin logging
 app.use((req, res, next) => {
-  console.log('Request Origin:', req.get('Origin'));
-  console.log('Request Method:', req.method);
-  console.log('Request Headers:', req.headers);
-  // Only log body for non-binary requests
-  if (req.headers['content-type'] && !req.headers['content-type'].includes('image')) {
-    console.log('Request Body:', req.body);
-  } else {
-    console.log('Request Body: [Binary or Image data]');
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`${req.method} ${req.path}`);
   }
   next();
 });
@@ -145,7 +139,7 @@ if (compareVersions(process.version.substring(1), requiredNodeVersion) < 0) {
 
 // Start the server
 app.listen(PORT, () => {
-  console.log(`Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
+  console.log(`NoteGeek server running on port ${PORT}`);
 });
 
 export default app;
