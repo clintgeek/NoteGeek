@@ -1,5 +1,4 @@
 import jwt from 'jsonwebtoken';
-import User from '../models/User.js';
 
 // Middleware to protect routes
 const protect = async (req, res, next) => {
@@ -14,12 +13,27 @@ const protect = async (req, res, next) => {
       // Verify token
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-      // Get user from the token
-      req.user = await User.findById(decoded.id).select('-password');
+      // Verify this is a NoteGeek token
+      if (decoded.app !== 'notegeek') {
+        return res.status(401).json({ message: 'Not authorized, invalid app' });
+      }
+
+      // Add decoded user info to request object
+      req.user = {
+        id: decoded.id,
+        email: decoded.email,
+        username: decoded.username
+      };
 
       next();
     } catch (error) {
-      console.error('Auth middleware error:', error);
+      console.error('Auth error:', error.message);
+      if (error.name === 'JsonWebTokenError') {
+        return res.status(401).json({ message: 'Invalid token' });
+      }
+      if (error.name === 'TokenExpiredError') {
+        return res.status(401).json({ message: 'Token expired' });
+      }
       res.status(401).json({ message: 'Not authorized, token failed' });
     }
   }

@@ -24,7 +24,7 @@ export const createNote = async (req, res) => {
     lockPassword,
   } = req.body;
 
-  const userId = req.user._id;
+  const userId = req.user.id;
 
   if (!content) {
     return res.status(400).json({ message: 'Note content cannot be empty' });
@@ -82,30 +82,23 @@ export const createNote = async (req, res) => {
 // @route   GET /api/notes
 // @access  Private
 export const getNotes = async (req, res) => {
-  const userId = req.user._id;
+  const userId = req.user.id;
   const { tag, prefix } = req.query;
-
-  console.log('Server - getNotes called with tag:', tag);
-  console.log('Server - getNotes called with prefix:', prefix);
 
   const filter = { userId };
 
   // Filter by exact tag match
   if (tag) {
     filter.tags = { $in: [tag] };
-    console.log('Server - Filtering by tag:', filter.tags);
   }
 
   // Filter by tag prefix (for hierarchical tags)
   if (prefix) {
     filter.tags = { $regex: `^${prefix}` };
-    console.log('Server - Filtering by prefix:', filter.tags);
   }
 
   try {
-    console.log('Server - Final filter:', filter);
     const notes = await Note.find(filter).sort({ updatedAt: -1 });
-    console.log('Server - Found notes:', notes.length);
     res.status(200).json(notes);
   } catch (error) {
     console.error('Error fetching notes:', error);
@@ -117,7 +110,7 @@ export const getNotes = async (req, res) => {
 // @route   GET /api/notes/:id
 // @access  Private
 export const getNoteById = async (req, res) => {
-  const userId = req.user._id;
+  const userId = req.user.id;
   const noteId = req.params.id;
 
   if (!isValidObjectId(noteId)) {
@@ -156,7 +149,7 @@ export const getNoteById = async (req, res) => {
 // @route   PUT /api/notes/:id
 // @access  Private
 export const updateNote = async (req, res) => {
-  const userId = req.user._id;
+  const userId = req.user.id;
   const noteId = req.params.id;
   const { title, content, tags, type } = req.body;
 
@@ -205,7 +198,7 @@ export const updateNote = async (req, res) => {
 // @route   DELETE /api/notes/:id
 // @access  Private
 export const deleteNote = async (req, res) => {
-  const userId = req.user._id;
+  const userId = req.user.id;
   const noteId = req.params.id;
 
   if (!isValidObjectId(noteId)) {
@@ -239,7 +232,7 @@ export const deleteNote = async (req, res) => {
 // @route   GET /api/notes/tags
 // @access  Private
 export const getTagHierarchy = async (req, res) => {
-  const userId = req.user._id;
+  const userId = req.user.id;
 
   try {
     const notes = await Note.find({ userId }, 'tags');

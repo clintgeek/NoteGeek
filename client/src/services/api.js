@@ -1,4 +1,5 @@
 import axios from 'axios';
+import useAuthStore from '../store/authStore';
 
 // Define the base URL for the API
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
@@ -17,65 +18,29 @@ const apiClient = axios.create({
     credentials: 'include'
 });
 
-// Add request interceptor for auth token
+// Global request interceptor to attach token
 apiClient.interceptors.request.use(
     (config) => {
-        // Get token from persisted auth store
-        const authStorage = localStorage.getItem('auth-storage');
-        let token = null;
-        if (authStorage) {
-            try {
-                const authState = JSON.parse(authStorage);
-                token = authState.state.token;
-            } catch (e) {
-                console.warn('Failed to parse auth storage:', e);
-            }
-        }
-
-        console.log('API Request - URL:', config.url);
-        console.log('API Request - Method:', config.method);
-        console.log('API Request - Has Token:', !!token);
-        console.log('API Request - Headers:', config.headers);
-
+        const token = useAuthStore.getState().token;
         if (token) {
+            config.headers = config.headers || {};
             config.headers['Authorization'] = `Bearer ${token}`;
-        } else {
-            console.warn('API Request - No auth token found');
         }
-
-        // Ensure CORS headers are properly set
-        config.headers['Access-Control-Allow-Credentials'] = true;
         return config;
     },
-    (error) => {
-        console.error('API Request Error:', error);
-        return Promise.reject(error);
-    }
+    (error) => Promise.reject(error)
 );
 
 // Add response interceptor for auth errors
 apiClient.interceptors.response.use(
-    (response) => {
-        console.log('API Response - Status:', response.status);
-        console.log('API Response - URL:', response.config.url);
-        console.log('API Response - Headers:', response.headers);
-        return response;
-    },
+    (response) => response,
     (error) => {
         if (error.response) {
-            console.error('API Error Response:', {
-                status: error.response.status,
-                url: error.config?.url,
-                message: error.response.data?.message || error.message,
-                data: error.response.data,
-                headers: error.response.headers
-            });
-
             // Handle 401 Unauthorized
             if (error.response.status === 401) {
-                console.warn('API - Unauthorized request, clearing auth state');
                 localStorage.removeItem('auth-storage');
             }
+            console.error('API Error:', error.response.status, error.config?.url);
         } else if (error.request) {
             console.error('API No Response:', error.request);
         } else {
@@ -113,7 +78,7 @@ export const searchNotesApi = async (query) => {
         const response = await apiClient.get('/search', { params: { q: query } });
         return response;
     } catch (error) {
-        console.error('API Search Error:', error);
+        console.error('Search failed:', error.message);
         throw error;
     }
 };
@@ -134,7 +99,7 @@ export const deleteTagApi = async (tag) => {
         const response = await apiClient.delete(`/tags/${encodeURIComponent(tag)}`);
         return response;
     } catch (error) {
-        console.error('API Delete Tag Error:', error);
+        console.error('Delete tag failed:', error.message);
         throw error;
     }
 };

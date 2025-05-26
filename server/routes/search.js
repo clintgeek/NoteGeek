@@ -1,6 +1,6 @@
 import express from 'express';
 import { searchNotes } from '../controllers/search.js';
-import { protect } from '../middleware/auth.js';
+import { protect } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 

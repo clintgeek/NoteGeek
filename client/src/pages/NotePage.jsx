@@ -28,13 +28,9 @@ function NotePage() {
     useEffect(() => {
         // Only fetch if we have an ID and it's not 'new' and user is authenticated
         if (id && id !== 'new' && isAuthenticated) {
-            console.log("Attempting to fetch note:", id);
             lastFetchedId.current = id;
             fetchNoteById(id)
                 .then(data => {
-                    console.log("Note fetched successfully:", data?._id);
-                    console.log("Note full data:", JSON.stringify(data, null, 2));
-                    console.log("Note type:", data?.type);
                     if (data && data._id) {
                         noteWasLoaded.current = true;
                     }
@@ -50,13 +46,6 @@ function NotePage() {
 
     // Log whenever selectedNote changes
     useEffect(() => {
-        console.log("Current selectedNote:", selectedNote ? {
-            id: selectedNote._id,
-            title: selectedNote.title,
-            type: selectedNote.type,
-            hasContent: !!selectedNote.content
-        } : 'null');
-
         // If we have a valid selectedNote, mark it as successfully loaded
         if (selectedNote && selectedNote._id === lastFetchedId.current) {
             noteWasLoaded.current = true;
@@ -195,12 +184,10 @@ function NotePage() {
     // For mind maps, always show the editor (even in view mode)
     // This is because mind maps are inherently interactive
     if (noteToDisplay && (noteToDisplay.type === 'mindmap' || noteToDisplay.type === 'handwritten')) {
-        console.log(`Rendering ${noteToDisplay.type} editor for note:`, noteToDisplay._id);
         return renderEditor();
     }
 
     // For other note types, use the regular viewer/editor pattern
-    console.log("Rendering regular note view/edit for type:", noteToDisplay?.type);
     return isEditRoute ? <NoteEditor /> : <NoteViewer />;
 }
 
