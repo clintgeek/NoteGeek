@@ -21,13 +21,15 @@ services:
     build:
       context: ./server
       dockerfile: Dockerfile
+      args:
+        - COMPOSE_BAKE=true
     container_name: notegeek-backend
     environment:
       - NODE_ENV=production
       - PORT=${PORT}
-      - DB_URI=mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@mongo:27017/notegeek?authSource=admin
+      - DB_URI=${DB_URI}
       - JWT_SECRET=${JWT_SECRET}
-      - SECRET_KEY=${SECRET_KEY}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
     expose:
       - "${PORT}"
     healthcheck:
@@ -35,8 +37,6 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-    depends_on:
-      - mongo
     networks:
       - notegeek_network
     restart: always
@@ -58,19 +58,6 @@ services:
     networks:
       - notegeek_network
     restart: always
-
-  backup:
-    image: mongo:latest
-    container_name: notegeek-backup
-    volumes:
-      - ./data/backups:/backups
-      - ./backup.sh:/backup.sh
-    depends_on:
-      - mongo
-    networks:
-      - notegeek_network
-    entrypoint: ["/bin/sh", "/backup.sh"]
-    profiles: ["backup"]  # Only run when explicitly requested
 
 networks:
   notegeek_network:
