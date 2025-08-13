@@ -17,6 +17,12 @@ function TagSelector({ selectedTags, onChange, disabled }) {
       value={selectedTags}
       onChange={(event, newValue) => onChange(newValue)}
       disabled={disabled}
+      freeSolo
+      filterSelectedOptions
+      selectOnFocus
+      clearOnBlur
+      handleHomeEndKeys
+      isOptionEqualToValue={(option, value) => option === value}
       renderTags={(value, getTagProps) =>
         value.map((option, index) => (
           <Chip
@@ -32,7 +38,7 @@ function TagSelector({ selectedTags, onChange, disabled }) {
           {...params}
           variant="outlined"
           label="Tags"
-          placeholder={disabled ? "" : "Add tags"}
+          placeholder={disabled ? "" : "Add tags (press Enter)"}
           size="small"
           disabled={disabled}
         />

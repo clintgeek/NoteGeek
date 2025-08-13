@@ -70,6 +70,11 @@ function NoteList({ tag, prefix }) {
         );
     }
 
+    // Alphabetize notes by title (case-insensitive)
+    const sortedNotes = [...notes].sort((a, b) =>
+        (a.title || 'Untitled Note').localeCompare(b.title || 'Untitled Note', undefined, { sensitivity: 'base' })
+    );
+
     return (
         <Box
             sx={{
@@ -79,7 +84,7 @@ function NoteList({ tag, prefix }) {
                 alignItems: 'stretch',
             }}
         >
-            {notes.map(note => (
+            {sortedNotes.map(note => (
                 <Paper
                     key={note._id}
                     elevation={2}
